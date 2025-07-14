@@ -1,34 +1,34 @@
 # BrokerAI
 
-BrokerAI è una piattaforma intelligente per la gestione e il confronto di polizze assicurative, sviluppata con FastAPI (backend) e Next.js (frontend).
+BrokerAI is an intelligent platform for managing and comparing insurance policies, developed with FastAPI (backend) and Next.js (frontend).
 
-## 🚀 Caratteristiche
+## 🚀 Features
 
-- **Backend FastAPI**: API REST robusta e performante
-- **Frontend Next.js**: Interfaccia utente moderna e reattiva
-- **Database Supabase**: Database PostgreSQL gestito con autenticazione e storage
-- **Docker**: Containerizzazione completa
-- **Nginx**: Reverse proxy e load balancing
-- **CI/CD**: Pipeline automatizzata con GitHub Actions
+- **FastAPI Backend**: Robust and performant REST API
+- **Next.js Frontend**: Modern and responsive user interface
+- **Supabase Database**: Managed PostgreSQL database with authentication and storage
+- **Docker**: Complete containerization
+- **Nginx**: Reverse proxy and load balancing
+- **CI/CD**: Automated pipeline with GitHub Actions
 
-## 📋 Prerequisiti
+## 📋 Prerequisites
 
-- Docker e Docker Compose
+- Docker and Docker Compose
 - Git
-- Node.js 18+ (per sviluppo locale)
-- Python 3.11+ (per sviluppo locale)
+- Node.js 18+ (for local development)
+- Python 3.11+ (for local development)
 
-## 🛠️ Installazione e Setup
+## 🛠️ Installation and Setup
 
-### Sviluppo con Docker
+### Development with Docker
 
-1. **Clona il repository**
+1. **Clone the repository**
    ```bash
    git clone <repository-url>
    cd brokerai
    ```
 
-2. **Configura le variabili d'ambiente**
+2. **Configure environment variables**
    ```bash
    # Backend
    cp backend/.env.example backend/.env
@@ -37,17 +37,17 @@ BrokerAI è una piattaforma intelligente per la gestione e il confronto di poliz
    cp frontend/.env.local.example frontend/.env.local
    ```
 
-3. **Avvia i servizi**
+3. **Start services**
    ```bash
    docker-compose up -d
    ```
 
-4. **Accedi all'applicazione**
+4. **Access the application**
    - Frontend: http://localhost
    - Backend API: http://localhost/api
-   - Database: Supabase (configurato tramite variabili d'ambiente)
+   - Database: Supabase (configured via environment variables)
 
-### Sviluppo Locale
+### Local Development
 
 #### Backend
 ```bash
@@ -65,7 +65,7 @@ npm install
 npm run dev
 ```
 
-## 🏗️ Architettura
+## 🏗️ Architecture
 
 ```
 brokerai/
@@ -91,144 +91,144 @@ brokerai/
 └── docker-compose.prod.yml # Production setup
 ```
 
-## 🔧 Comandi Utili
+## 🔧 Useful Commands
 
 ### Docker
 ```bash
-# Avvia tutti i servizi
+# Start all services
 docker-compose up -d
 
-# Visualizza i logs
+# View logs
 docker-compose logs -f
 
-# Ricostruisci i container
+# Rebuild containers
 docker-compose up --build
 
-# Ferma tutti i servizi
+# Stop all services
 docker-compose down
 
-# Pulisci volumi e immagini
+# Clean volumes and images
 docker-compose down -v
 docker system prune -a
 ```
 
 ### Database (Supabase)
 ```bash
-# Il database è gestito da Supabase
-# Configura le credenziali nel file .env:
+# Database is managed by Supabase
+# Configure credentials in .env file:
 # SUPABASE_URL=your-supabase-url
 # SUPABASE_KEY=your-supabase-anon-key
 # SUPABASE_SERVICE_KEY=your-supabase-service-key
 
-# Test connessione database
+# Test database connection
 curl http://localhost:8000/health
 ```
 
 ### Testing
 ```bash
-# Test backend
+# Backend tests
 cd backend
 python -m pytest tests/ -v
 
-# Test frontend
+# Frontend tests
 cd frontend
 npm run test
 ```
 
-## 🚀 Deploy in Produzione
+## 🚀 Production Deployment
 
-### Configurazione Server
+### Server Configuration
 
-1. **Installa Docker e Docker Compose sul server**
+1. **Install Docker and Docker Compose on server**
 
-2. **Clona il repository**
+2. **Clone the repository**
    ```bash
    git clone <repository-url> /opt/brokerai
    cd /opt/brokerai
    ```
 
-3. **Configura le variabili d'ambiente per la produzione**
+3. **Configure environment variables for production**
    ```bash
-   # Crea i file di configurazione
+   # Create configuration files
    cp backend/.env.example backend/.env
    cp frontend/.env.local.example frontend/.env.local
    
-   # Modifica con i valori di produzione
+   # Edit with production values
    nano backend/.env
    nano frontend/.env.local
    ```
 
-4. **Avvia in produzione**
+4. **Start in production**
    ```bash
    docker-compose -f docker-compose.prod.yml up -d
    ```
 
-### CI/CD con GitHub Actions
+### CI/CD with GitHub Actions
 
-Il progetto include una pipeline CI/CD automatizzata che:
+The project includes an automated CI/CD pipeline that:
 
-1. **Test**: Esegue test automatici su backend e frontend
-2. **Build**: Costruisce le immagini Docker
-3. **Deploy**: Distribuisce automaticamente su push al branch `main`
+1. **Test**: Runs automated tests on backend and frontend
+2. **Build**: Builds Docker images
+3. **Deploy**: Automatically deploys on push to `main` branch
 
-#### Configurazione Secrets GitHub
+#### GitHub Secrets Configuration
 
-Aggiungi questi secrets nel repository GitHub:
+Add these secrets to the GitHub repository:
 
-- `SERVER_HOST`: IP/hostname del server di produzione
-- `SERVER_USER`: Username SSH
-- `SERVER_SSH_KEY`: Chiave privata SSH
-- `SERVER_PORT`: Porta SSH (opzionale, default 22)
+- `SERVER_HOST`: Production server IP/hostname
+- `SERVER_USER`: SSH username
+- `SERVER_SSH_KEY`: SSH private key
+- `SERVER_PORT`: SSH port (optional, default 22)
 
-## 📊 Monitoraggio
+## 📊 Monitoring
 
 ### Health Checks
 - Backend: `GET /health`
-- Frontend: Disponibile tramite Nginx
-- Database: Connessione Supabase verificata tramite backend health check
+- Frontend: Available through Nginx
+- Database: Supabase connection verified via backend health check
 
 ### Logs
 ```bash
-# Visualizza logs di tutti i servizi
+# View logs for all services
 docker-compose logs -f
 
-# Logs di un servizio specifico
+# Logs for specific service
 docker-compose logs -f backend
 docker-compose logs -f frontend
 docker-compose logs -f nginx
 ```
 
-## 🔒 Sicurezza
+## 🔒 Security
 
-- **HTTPS**: Configurato per produzione
-- **Security Headers**: Implementati in Nginx
-- **Database**: Connessioni sicure tramite Supabase
-- **Secrets Management**: Gestione sicura delle credenziali
-- **User Permissions**: Container non-root
+- **HTTPS**: Configured for production
+- **Security Headers**: Implemented in Nginx
+- **Database**: Secure connections via Supabase
+- **Secrets Management**: Secure credential management
+- **User Permissions**: Non-root containers
 
-## 🤝 Contribuire
+## 🤝 Contributing
 
-1. Fork del repository
-2. Crea un branch per la feature (`git checkout -b feature/AmazingFeature`)
-3. Commit delle modifiche (`git commit -m 'Add some AmazingFeature'`)
-4. Push al branch (`git push origin feature/AmazingFeature`)
-5. Apri una Pull Request
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
 ## 📝 License
 
-Questo progetto è sotto licenza MIT. Vedi il file `LICENSE` per i dettagli.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
 
-## 📞 Supporto
+## 📞 Support
 
-Per supporto e domande:
-- Apri un issue su GitHub
-- Contatta il team di sviluppo
+For support and questions:
+- Open an issue on GitHub
+- Contact the development team
 
 ## 🔄 Changelog
 
 ### v1.0.0
-- Setup iniziale del progetto
-- Implementazione backend FastAPI
-- Implementazione frontend Next.js
-- Containerizzazione Docker
-- Pipeline CI/CD
+- Initial project setup
+- FastAPI backend implementation
+- Next.js frontend implementation
+- Docker containerization
+- CI/CD pipeline
