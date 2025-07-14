@@ -6,9 +6,7 @@ RUN rm /etc/nginx/conf.d/default.conf
 # Copy custom nginx configuration
 COPY nginx.conf /etc/nginx/conf.d/
 
-# Create nginx user and set permissions
-RUN addgroup -g 1001 -S nginx && \
-    adduser -S -D -H -u 1001 -h /var/cache/nginx -s /sbin/nologin -G nginx -g nginx nginx
+# Nginx user already exists, just set proper permissions
 
 # Set proper permissions
 RUN chown -R nginx:nginx /var/cache/nginx && \
