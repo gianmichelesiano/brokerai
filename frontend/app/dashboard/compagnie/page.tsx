@@ -62,7 +62,7 @@ export default function CompagniePage() {
   const loadCompagnie = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`${API_BASE_URL}?size=100`)
+      const response = await fetch(`${API_BASE_URL}`)
       
       if (!response.ok) {
         throw new Error("Errore nel caricamento delle compagnie")
