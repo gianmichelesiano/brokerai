@@ -46,7 +46,7 @@ services:
           memory: 700M
           cpus: '0.5'
         reservations:
-          memory: 300M
+          memory: 400M
     
     # Variabili d'ambiente (senza NODE_ENV=production per evitare warning)
     environment:
