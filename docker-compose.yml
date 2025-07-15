@@ -33,7 +33,7 @@ services:
       - ./frontend:/app
     
     # CAMBIAMENTO 1: Da dev a produzione
-    command: sh -c "npm install --legacy-peer-deps && npm run build && npm start"
+    command: sh -c "npm install --legacy-peer-deps && npm run dev"
     
     # CAMBIAMENTO 2: Limiti di memoria critici
     deploy:
