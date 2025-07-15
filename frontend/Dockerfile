@@ -7,13 +7,16 @@ WORKDIR /app
 COPY package*.json ./
 
 # Installa dipendenze
-RUN npm install
+RUN npm install --legacy-peer-deps
 
 # Copia tutto il resto
 COPY . .
 
+# Build per produzione
+RUN npm run build
+
 # Porta
 EXPOSE 3000
 
-# Comando di default
-CMD ["npm", "run", "dev"]
+# Comando di default per produzione
+CMD ["npm", "run", "start"]
