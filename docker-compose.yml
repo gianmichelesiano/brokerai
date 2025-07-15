@@ -11,7 +11,6 @@ services:
       - ./backend/.env
     volumes:
       - ./backend:/app
-    # CAMBIAMENTO 3: Rimosso --reload
     command: bash -c "pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     
     # Limiti per backend
@@ -32,18 +31,15 @@ services:
     volumes:
       - ./frontend:/app
     
-    environment:
-      # Rimuovi NODE_ENV=production (causa il warning)
-      - NODE_OPTIONS=--max-old-space-size=256
-      - NEXT_TELEMETRY_DISABLED=1
-  
-    # Comando che installa tutto in una volta
-    command: sh -c "
-      npm install --legacy-peer-deps && 
-      npm install --save-dev typescript @types/react @types/node --legacy-peer-deps && 
+    # Comando corretto per installare dipendenze e avviare
+    command: >
+      sh -c "
+      npm install --legacy-peer-deps &&
+      npm install --save-dev typescript @types/react @types/node --legacy-peer-deps &&
       npm run dev
-
-    # CAMBIAMENTO 2: Limiti di memoria critici
+      "
+    
+    # Limiti di memoria
     deploy:
       resources:
         limits:
@@ -52,9 +48,8 @@ services:
         reservations:
           memory: 200M
     
-    # Variabili d'ambiente per ottimizzazione
+    # Variabili d'ambiente (senza NODE_ENV=production per evitare warning)
     environment:
-      - NODE_ENV=production
       - NODE_OPTIONS=--max-old-space-size=256
       - NEXT_TELEMETRY_DISABLED=1
     
