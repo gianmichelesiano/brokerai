@@ -43,14 +43,14 @@ services:
     deploy:
       resources:
         limits:
-          memory: 400M
+          memory: 800M
           cpus: '0.5'
         reservations:
           memory: 200M
     
     # Variabili d'ambiente (senza NODE_ENV=production per evitare warning)
     environment:
-      - NODE_OPTIONS=--max-old-space-size=300
+      - NODE_OPTIONS=--max-old-space-size=700
       - NEXT_TELEMETRY_DISABLED=1
     
     stdin_open: true
