@@ -18,7 +18,7 @@ interface SezioneFormData {
   descrizione: string
 }
 
-const API_BASE_URL = "http://localhost:8000/api/sezioni"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/sezioni`
 
 export function CreateSezioneDialog({ onSezioneCreated }: CreateSezioneDialogProps) {
   const [isOpen, setIsOpen] = useState(false)

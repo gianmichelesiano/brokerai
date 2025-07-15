@@ -60,7 +60,7 @@ interface ViewCompagniaDialogProps {
   onClose: () => void
 }
 
-const API_BASE_URL = "http://localhost:8000/api/compagnie"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie`
 
 export function ViewCompagniaDialog({ compagnia, isOpen, onClose }: ViewCompagniaDialogProps) {
   const [files, setFiles] = useState<CompagniaFile[]>([])
@@ -106,7 +106,7 @@ export function ViewCompagniaDialog({ compagnia, isOpen, onClose }: ViewCompagni
     try {
       setDeletingFileId(relazioneId)
       
-      const response = await fetch(`http://localhost:8000/api/compagnia-tipologia/${relazioneId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia/${relazioneId}`, {
         method: 'DELETE',
       })
       
