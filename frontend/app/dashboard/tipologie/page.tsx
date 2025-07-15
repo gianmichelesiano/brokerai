@@ -39,7 +39,7 @@ interface TipologiaStats {
   nomi_piu_lunghi: Array<{ nome: string; lunghezza: number }>
 }
 
-const API_BASE_URL = "http://localhost:8000/api/tipologia-assicurazione"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione`
 
 export default function TipologiePage() {
   const [tipologie, setTipologie] = useState<TipologiaAssicurazione[]>([])
@@ -81,7 +81,7 @@ export default function TipologiePage() {
         data.items.map(async (tipologia) => {
           try {
             const garanzieResponse = await fetch(
-              `http://localhost:8000/api/garanzie/by-tipologia/${tipologia.id}?size=1`
+              `${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/by-tipologia/${tipologia.id}?size=1`
             )
             if (garanzieResponse.ok) {
               const garanzieData = await garanzieResponse.json()
@@ -242,7 +242,7 @@ export default function TipologiePage() {
     try {
       setGeneratingGaranzie(tipologiaId)
       
-      const response = await fetch(`http://localhost:8000/api/garanzie/genera/${tipologiaId}`, {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/genera/${tipologiaId}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

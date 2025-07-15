@@ -37,9 +37,9 @@ interface Tipologia {
   descrizione: string | null
 }
 
-const API_BASE_URL = "http://localhost:8000/api/compagnia-tipologia"
-const COMPAGNIE_API_URL = "http://localhost:8000/api/compagnie"
-const TIPOLOGIE_API_URL = "http://localhost:8000/api/tipologia-assicurazione"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia`
+const COMPAGNIE_API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie`
+const TIPOLOGIE_API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione`
 
 export default function CompagnieTipologiePage() {
   const [relazioni, setRelazioni] = useState<CompagniaTipologia[]>([])

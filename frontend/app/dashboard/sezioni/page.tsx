@@ -39,7 +39,7 @@ interface SezioneStats {
   ultima_modifica: string | null
 }
 
-const API_BASE_URL = "http://localhost:8000/api/sezioni"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/sezioni`
 
 export default function SezioniPage() {
   const [sezioni, setSezioni] = useState<Sezione[]>([])

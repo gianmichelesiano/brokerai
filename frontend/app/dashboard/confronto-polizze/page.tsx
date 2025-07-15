@@ -93,7 +93,7 @@ export default function ConfrontoPolizzePage() {
   const fetchTipologie = async () => {
     try {
       setLoadingData(true)
-      const response = await fetch('http://localhost:8000/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       if (!response.ok) throw new Error('Errore nel caricamento delle tipologie')
       const data = await response.json()
       setTipologie(data.items || [])
@@ -110,13 +110,13 @@ export default function ConfrontoPolizzePage() {
       setLoadingData(true)
       
       // Fetch all compagnie (no filter by tipologia)
-      const compagnieRes = await fetch('http://localhost:8000/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc')
+      const compagnieRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       if (!compagnieRes.ok) throw new Error('Errore nel caricamento delle compagnie')
       const compagnieData = await compagnieRes.json()
       setCompagnie(compagnieData.items || [])
 
       // Fetch garanzie filtered by tipologia
-      const garanzieRes = await fetch(`http://localhost:8000/api/garanzie/by-tipologia/${selectedTipologia}?page=1&size=100&sort_by=created_at&sort_order=desc`)
+      const garanzieRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/by-tipologia/${selectedTipologia}?page=1&size=100&sort_by=created_at&sort_order=desc`)
       if (!garanzieRes.ok) throw new Error('Errore nel caricamento delle garanzie')
       const garanzieData = await garanzieRes.json()
       setGaranzie(garanzieData.garanzie?.items || [])
@@ -162,7 +162,7 @@ export default function ConfrontoPolizzePage() {
 
     setLoading(true)
     try {
-      const response = await fetch('http://localhost:8000/api/confronti/compare', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/compare`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -217,7 +217,7 @@ export default function ConfrontoPolizzePage() {
         return;
       }
 
-      const response = await fetch('http://localhost:8000/api/confronti/salva', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/salva`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

@@ -64,7 +64,7 @@ export default function StoricoPage() {
         return;
       }
 
-      const res = await fetch("http://localhost:8000/api/tipologia-assicurazione/?page=1&size=100", {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione/?page=1&size=100`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -90,7 +90,7 @@ export default function StoricoPage() {
         return;
       }
 
-      let url = "http://localhost:8000/api/confronti/storico?page=1&size=100";
+      let url = `${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/storico?page=1&size=100`;
       if (filterTipologia) url += `&tipologia_id=${filterTipologia}`;
       if (search) url += `&search=${encodeURIComponent(search)}`;
       const res = await fetch(url, {
@@ -119,7 +119,7 @@ export default function StoricoPage() {
         return;
       }
 
-      const res = await fetch(`http://localhost:8000/api/confronti/storico/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/storico/${id}`, {
         headers: {
           'Authorization': `Bearer ${accessToken}`
         }
@@ -145,7 +145,7 @@ export default function StoricoPage() {
         return;
       }
 
-      const res = await fetch(`http://localhost:8000/api/confronti/storico/${id}`, {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/storico/${id}`, {
         method: "DELETE",
         headers: {
           'Authorization': `Bearer ${accessToken}`

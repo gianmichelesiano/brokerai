@@ -52,9 +52,9 @@ interface TipologiaAssicurazione {
   updated_at: string
 }
 
-const API_BASE_URL = "http://localhost:8000/api/garanzie"
-const TIPOLOGIE_API_URL = "http://localhost:8000/api/tipologia-assicurazione"
-const SEZIONI_API_URL = "http://localhost:8000/api/sezioni"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie`
+const TIPOLOGIE_API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione`
+const SEZIONI_API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/sezioni`
 
 export default function GaranziePage() {
   const searchParams = useSearchParams()

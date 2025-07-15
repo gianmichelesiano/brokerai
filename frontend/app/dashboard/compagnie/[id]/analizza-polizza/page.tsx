@@ -77,9 +77,9 @@ interface CompagniaAnalisiData {
   total_tipologie: number
 }
 
-const API_BASE_URL = "http://localhost:8000/api/compagnia-tipologia"
-const GARANZIE_API_URL = "http://localhost:8000/api/garanzie"
-const COMPAGNIE_API_URL = "http://localhost:8000/api/compagnie"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia`
+const GARANZIE_API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie`
+const COMPAGNIE_API_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie`
 
 export default function AnalizzaPolizzaPage() {
   const [data, setData] = useState<CompagniaAnalisiData | null>(null)
