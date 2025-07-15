@@ -75,7 +75,7 @@ export default function MappingPage() {
 
   const fetchTipologie = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       if (!response.ok) throw new Error('Errore nel caricamento delle tipologie')
       const data = await response.json()
       setTipologie(data.items || [])
@@ -87,7 +87,7 @@ export default function MappingPage() {
 
   const fetchAllCompagnie = async () => {
     try {
-      const response = await fetch('http://localhost:8000/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc')
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       if (!response.ok) throw new Error('Errore nel caricamento delle compagnie')
       const data = await response.json()
       setCompagnie(data.items || [])
@@ -102,7 +102,7 @@ export default function MappingPage() {
       setLoadingData(true)
       
       // Chiamata singola ottimizzata all'endpoint matrice
-      const response = await fetch('http://localhost:8000/api/mapping/matrix/analisi', {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mapping/matrix/analisi`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
