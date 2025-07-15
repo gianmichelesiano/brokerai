@@ -1,4 +1,3 @@
-# docker-compose.debug.yml
 version: '3.8'
 
 services:
@@ -12,7 +11,14 @@ services:
       - ./backend/.env
     volumes:
       - ./backend:/app
-    command: bash -c "pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: bash -c "pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    
+    # Limiti per backend
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          cpus: '0.3'
 
   frontend:
     container_name: brokerai-frontend
@@ -24,7 +30,29 @@ services:
       - ./frontend/.env.local
     volumes:
       - ./frontend:/app
-    command: sh -c "npm install --legacy-peer-deps && npm run dev"
+    
+    # Comando corretto per installare dipendenze e avviare
+    command: >
+      sh -c "
+      npm install --legacy-peer-deps &&
+      npm install --save-dev typescript @types/react @types/node --legacy-peer-deps &&
+      npm run dev
+      "
+    
+    # Limiti di memoria
+    deploy:
+      resources:
+        limits:
+          memory: 800M
+          cpus: '0.5'
+        reservations:
+          memory: 200M
+    
+    # Variabili d'ambiente (senza NODE_ENV=production per evitare warning)
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=700
+      - NEXT_TELEMETRY_DISABLED=1
+    
     stdin_open: true
     tty: true
 

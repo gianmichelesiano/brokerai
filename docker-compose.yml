@@ -1,60 +1,62 @@
-version: '3.8'
-
 services:
   backend:
     container_name: brokerai-backend
-    image: python:3.11-slim
-    working_dir: /app
+    build: ./backend
     ports:
       - "8000:8000"
     env_file:
       - ./backend/.env
-    volumes:
-      - ./backend:/app
-    command: bash -c "pip install -r requirements.txt && uvicorn app.main:app --host 0.0.0.0 --port 8000"
+    restart: unless-stopped
     
-    # Limiti per backend
+    # Comando ottimizzato per produzione
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --workers 2
+    
+    # Limiti ottimizzati per produzione
     deploy:
       resources:
         limits:
-          memory: 300M
-          cpus: '0.3'
+          memory: 512M
+          cpus: '0.5'
+        reservations:
+          memory: 256M
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
   frontend:
     container_name: brokerai-frontend
-    image: node:18-alpine
-    working_dir: /app
+    build: ./frontend
     ports:
       - "3000:3000"
     env_file:
-      - ./frontend/.env.local
-    volumes:
-      - ./frontend:/app
+      - ./frontend/.env.production
+    restart: unless-stopped
     
-    # Comando corretto per installare dipendenze e avviare
-    command: >
-      sh -c "
-      npm install --legacy-peer-deps &&
-      npm install --save-dev typescript @types/react @types/node --legacy-peer-deps &&
-      npm run dev
-      "
+    # Variabili d'ambiente aggiuntive per produzione
+    environment:
+      - NODE_OPTIONS=--max-old-space-size=1024
     
-    # Limiti di memoria
+    # Limiti ottimizzati per produzione
     deploy:
       resources:
         limits:
-          memory: 800M
-          cpus: '0.5'
+          memory: 1024M
+          cpus: '0.7'
         reservations:
-          memory: 200M
+          memory: 512M
     
-    # Variabili d'ambiente (senza NODE_ENV=production per evitare warning)
-    environment:
-      - NODE_OPTIONS=--max-old-space-size=700
-      - NEXT_TELEMETRY_DISABLED=1
-    
-    stdin_open: true
-    tty: true
+    # Health check
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
 networks:
   default:
