@@ -24,7 +24,7 @@ interface CompagnieStatsProps {
   refreshTrigger?: number
 }
 
-const API_BASE_URL = "http://localhost:8000/api/compagnie"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie`
 
 export function CompagnieStats({ refreshTrigger }: CompagnieStatsProps) {
   const [stats, setStats] = useState<CompagniaStats | null>(null)

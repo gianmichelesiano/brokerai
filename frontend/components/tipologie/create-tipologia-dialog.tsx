@@ -13,7 +13,7 @@ interface CreateTipologiaDialogProps {
   onSuccess: () => void
 }
 
-const API_BASE_URL = "http://localhost:8000/api/tipologia-assicurazione"
+const API_BASE_URL = `${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione`
 
 export function CreateTipologiaDialog({ onSuccess }: CreateTipologiaDialogProps) {
   const [isOpen, setIsOpen] = useState(false)
