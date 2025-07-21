@@ -9,6 +9,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
 import { ArrowLeft, Building, FileText, Tag, Calendar, CheckCircle, XCircle, AlertCircle, RefreshCw, ChevronDown, ChevronRight, Shield, Loader2, Search, X, Brain, Eye, Edit, Save, XCircle as Cancel } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useUsageLimits } from "@/hooks/use-usage-limits"
+import { LimitReachedActions } from "@/components/billing/limit-reached-actions"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
 
@@ -93,8 +95,15 @@ export default function AnalizzaPolizzaPage() {
   const [isEditingAiText, setIsEditingAiText] = useState(false)
   const [isSavingAiText, setIsSavingAiText] = useState(false)
   const [isCheckingAnalyses, setIsCheckingAnalyses] = useState<Set<number>>(new Set())
+  const [showLimitActions, setShowLimitActions] = useState<{
+    show: boolean;
+    limitType?: 'analyses' | 'ai_analyses' | 'exports' | 'companies';
+    currentUsage?: number;
+    limit?: number;
+  }>({ show: false })
   
   const { toast } = useToast()
+  const { checkLimitWithNotification, incrementUsage, usage, limits, plan_type } = useUsageLimits()
   const router = useRouter()
   const params = useParams()
   const compagniaId = params.id as string
@@ -379,11 +388,23 @@ export default function AnalizzaPolizzaPage() {
     }
   }
 
-  // Handle analyze garanzia
+  // Handle analyze garanzia with billing limits
   const handleAnalyzeGaranzia = async (garanziaId: number) => {
     try {
       setAnalyzingGaranzie(prev => new Set(prev).add(garanziaId))
       
+      // 1. Controlla limiti PRIMA dell'azione
+      const canAnalyze = await checkLimitWithNotification('analysis', 'analisi polizza');
+      if (!canAnalyze) {
+        setAnalyzingGaranzie(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(garanziaId)
+          return newSet
+        })
+        return;
+      }
+      
+      // 2. Esegui l'analisi
       const response = await fetch(`${COMPAGNIE_API_URL}/analizza-polizza`, {
         method: 'POST',
         headers: {
@@ -400,6 +421,33 @@ export default function AnalizzaPolizzaPage() {
       }
       
       const result = await response.json()
+      
+      // 3. Incrementa utilizzo (con gestione automatica dei limiti)
+      try {
+        await incrementUsage('analyses');
+        
+        // Controlla se abbiamo raggiunto il limite DOPO l'incremento
+        const newUsage = usage.analyses_used + 1;
+        if (newUsage >= limits.monthly_analyses && plan_type === 'free') {
+          // Mostra le azioni disponibili per l'utente
+          setShowLimitActions({
+            show: true,
+            limitType: 'analyses',
+            currentUsage: newUsage,
+            limit: limits.monthly_analyses
+          });
+        }
+      } catch (error) {
+        // Se l'errore è dovuto al limite raggiunto, mostra le azioni
+        if (error instanceof Error && error.message.includes('limit reached')) {
+          setShowLimitActions({
+            show: true,
+            limitType: 'analyses',
+            currentUsage: usage.analyses_used,
+            limit: limits.monthly_analyses
+          });
+        }
+      }
       
       toast({
         title: "Analisi completata",
@@ -583,10 +631,37 @@ export default function AnalizzaPolizzaPage() {
               Panoramica delle tipologie di assicurazione e relative polizze per questa compagnia
             </p>
           </div>
-          <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Aggiorna
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Aggiorna
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                toast({
+                  title: "Test Toast",
+                  description: "Se vedi questo messaggio, il sistema di notifiche funziona!",
+                  variant: "default"
+                });
+              }}
+            >
+              🧪 Test Toast
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setShowLimitActions({
+                  show: true,
+                  limitType: 'analyses',
+                  currentUsage: 5,
+                  limit: 5
+                });
+              }}
+            >
+              🚨 Test Limite
+            </Button>
+          </div>
         </div>
       </div>
 
@@ -885,6 +960,17 @@ export default function AnalizzaPolizzaPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Limit Reached Actions */}
+      {showLimitActions.show && showLimitActions.limitType && (
+        <LimitReachedActions
+          limitType={showLimitActions.limitType}
+          currentUsage={showLimitActions.currentUsage || 0}
+          limit={showLimitActions.limit || 0}
+          planType={plan_type}
+          onDismiss={() => setShowLimitActions({ show: false })}
+        />
+      )}
 
       {/* Results Dialog */}
       <Dialog open={isResultDialogOpen} onOpenChange={setIsResultDialogOpen}>

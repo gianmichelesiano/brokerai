@@ -12,7 +12,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Shield, Home, FileText, Building2, Search, BarChart3, History, Settings, User, Tag, Layers, LogOut } from "lucide-react"
+import { Shield, Home, FileText, Building2, Search, BarChart3, History, Settings, User, Tag, Layers, LogOut, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/hooks/use-auth"
@@ -25,7 +25,12 @@ const menuItems = [
     icon: Home,
   },
   {
-    title: "Tipologie",
+    title: "Clienti",
+    url: "/dashboard/clients",
+    icon: Users,
+  },
+  {
+    title: "Rami",
     url: "/dashboard/tipologie",
     icon: Tag,
   },

@@ -139,9 +139,9 @@ async def get_config():
     return {
         "environment": settings.ENVIRONMENT,
         "debug": settings.DEBUG,
-        "allowed_origins": settings.ALLOWED_ORIGINS,
+        "allowed_origins": settings.allowed_origins_list,
         "max_file_size": settings.MAX_FILE_SIZE,
-        "allowed_file_types": settings.ALLOWED_FILE_TYPES,
+        "allowed_file_types": settings.allowed_file_types_list,
         "default_page_size": settings.DEFAULT_PAGE_SIZE,
         "max_page_size": settings.MAX_PAGE_SIZE,
         "openai_model": settings.OPENAI_MODEL,

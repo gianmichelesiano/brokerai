@@ -232,3 +232,20 @@ For support and questions:
 - Next.js frontend implementation
 - Docker containerization
 - CI/CD pipeline
+
+
+
+# 1. Verifica setup
+npm run test:setup
+
+# 2. Configura prodotti Autumn
+npm run setup:autumn
+
+# 3. Configura Stripe Portal
+npm run setup:stripe-portal
+
+# 4. Avvia il server
+npm run dev
+
+# 5. Visita la pagina prezzi
+# http://localhost:3000/pricing

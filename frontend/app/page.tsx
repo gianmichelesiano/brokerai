@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ArrowRight, Shield, Search, BarChart3, FileText, Zap, Users, CheckCircle } from "lucide-react"
 import Link from "next/link"
+import PricingTable from "@/components/billing/pricing-table"
 
 export default function LandingPage() {
   return (
@@ -17,6 +18,9 @@ export default function LandingPage() {
           <div className="hidden md:flex items-center gap-4">
             <Button variant="ghost" asChild className="text-white hover:text-white hover:bg-slate-700">
               <Link href="#features">Funzionalità</Link>
+            </Button>
+            <Button variant="ghost" asChild className="text-white hover:text-white hover:bg-slate-700">
+              <Link href="#pricing">Prezzi</Link>
             </Button>
             <Button variant="ghost" asChild className="text-white hover:text-white hover:bg-slate-700">
               <Link href="#how-it-works">Come Funziona</Link>
@@ -243,8 +247,47 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Pricing Section */}
+      <section id="pricing" className="py-12 sm:py-16 lg:py-20 px-4 bg-gray-50">
+        <div className="container mx-auto">
+          <div className="text-center mb-12 sm:mb-16">
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Scegli il Piano Perfetto per Te</h2>
+            <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              Piani flessibili per ogni esigenza, dal broker individuale alle grandi organizzazioni.
+              Inizia gratis e scala quando ne hai bisogno.
+            </p>
+          </div>
+          
+          <PricingTable />
+          
+          <div className="text-center mt-12">
+            <p className="text-sm text-gray-500 mb-4">
+              Tutti i piani includono supporto tecnico e aggiornamenti gratuiti
+            </p>
+            <div className="flex flex-wrap justify-center gap-6 text-sm text-gray-600">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Sicurezza enterprise</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Backup automatici</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Uptime 99.9%</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-green-500" />
+                <span>Cancellazione in qualsiasi momento</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* How it Works */}
-      <section id="how-it-works" className="py-12 sm:py-16 lg:py-20 px-4 bg-gray-50">
+      <section id="how-it-works" className="py-12 sm:py-16 lg:py-20 px-4 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-12 sm:mb-16">
             <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Come Funziona</h2>

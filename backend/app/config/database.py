@@ -9,6 +9,17 @@ from app.config.settings import settings
 
 logger = logging.getLogger(__name__)
 
+# Check if we should use mock database
+USE_MOCK_DATABASE = (
+    settings.SUPABASE_URL == "https://your-project-id.supabase.co" or
+    settings.SUPABASE_KEY == "your-anon-key-here" or
+    settings.SUPABASE_SERVICE_KEY == "your-service-role-key-here"
+)
+
+if USE_MOCK_DATABASE:
+    logger.warning("🔶 Using MOCK database - Supabase credentials not configured")
+    from app.config.mock_database import get_mock_supabase, get_mock_supabase_service
+
 
 class SupabaseClient:
     """Supabase client wrapper"""
@@ -78,11 +89,15 @@ supabase_client = SupabaseClient()
 
 def get_supabase() -> Client:
     """Dependency to get Supabase client"""
+    if USE_MOCK_DATABASE:
+        return get_mock_supabase()
     return supabase_client.client
 
 
 def get_supabase_service() -> Client:
     """Dependency to get Supabase service client"""
+    if USE_MOCK_DATABASE:
+        return get_mock_supabase_service()
     return supabase_client.service_client
 
 

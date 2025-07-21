@@ -4,12 +4,19 @@ Application settings and configuration
 
 import os
 from typing import List
-from pydantic_settings import BaseSettings
-from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import Field, field_validator
 
 
 class Settings(BaseSettings):
     """Application settings"""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=True,
+        extra="ignore"
+    )
     
     # Environment
     ENVIRONMENT: str = Field(default="development", description="Environment name")
@@ -25,27 +32,22 @@ class Settings(BaseSettings):
     
     # OpenAI Configuration
     OPENAI_API_KEY: str = Field(..., description="OpenAI API key")
-    OPENAI_MODEL: str = Field(default="gpt-4.1-mini", description="OpenAI model to use")
+    OPENAI_MODEL: str = Field(default="gpt-4o-mini", description="OpenAI model to use")
     OPENAI_MAX_TOKENS: int = Field(default=2000, description="Max tokens for OpenAI responses")
     OPENAI_TEMPERATURE: float = Field(default=0.1, description="OpenAI temperature")
     
     # File Upload Configuration
     MAX_FILE_SIZE: int = Field(default=52428800, description="Max file size in bytes (50MB)")
     UPLOAD_DIR: str = Field(default="./uploads", description="Local upload directory")
-    ALLOWED_FILE_TYPES: List[str] = Field(
-        default=["pdf", "docx", "doc"], 
-        description="Allowed file extensions"
+    ALLOWED_FILE_TYPES: str = Field(
+        default="pdf,docx,doc", 
+        description="Allowed file extensions (comma-separated)"
     )
     
     # CORS Configuration
-    ALLOWED_ORIGINS: List[str] = Field(
-        default=[
-            "http://localhost:3000",
-            "http://localhost:3001", 
-            "http://127.0.0.1:3000",
-            "http://127.0.0.1:3001"
-        ],
-        description="Allowed CORS origins"
+    ALLOWED_ORIGINS: str = Field(
+        default="http://localhost:3000,http://localhost:3001,http://127.0.0.1:3000,http://127.0.0.1:3001",
+        description="Allowed CORS origins (comma-separated)"
     )
     
     # Database Configuration
@@ -78,11 +80,23 @@ class Settings(BaseSettings):
     DEFAULT_PAGE_SIZE: int = Field(default=20, description="Default pagination page size")
     MAX_PAGE_SIZE: int = Field(default=100, description="Maximum pagination page size")
     
-    class Config:
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = True
-        extra = "ignore"  # Ignore extra fields from .env
+    # Stripe Configuration
+    STRIPE_SECRET_KEY: str = Field(..., description="Stripe secret key")
+    STRIPE_PUBLISHABLE_KEY: str = Field(..., description="Stripe publishable key")
+    STRIPE_WEBHOOK_SECRET: str = Field(..., description="Stripe webhook secret")
+    
+    # Autumn Billing
+    AUTUMN_SECRET_KEY: str = Field(..., description="Autumn API secret key")
+    
+    @property
+    def allowed_origins_list(self) -> List[str]:
+        """Get ALLOWED_ORIGINS as a list"""
+        return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(',') if origin.strip()]
+    
+    @property
+    def allowed_file_types_list(self) -> List[str]:
+        """Get ALLOWED_FILE_TYPES as a list"""
+        return [file_type.strip() for file_type in self.ALLOWED_FILE_TYPES.split(',') if file_type.strip()]
         
     def get_database_url(self) -> str:
         """Get database URL for Supabase"""

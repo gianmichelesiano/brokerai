@@ -298,23 +298,23 @@ export default function TipologiePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Tipologie Assicurazione</h1>
+          <h1 className="text-3xl font-bold tracking-tight">Rami Assicurazione</h1>
           <p className="text-muted-foreground">
-            Gestisci le tipologie di assicurazione disponibili nel sistema
+            Gestisci i rami di assicurazione disponibili nel sistema
           </p>
         </div>
         <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Nuova Tipologia
+              Nuovo Ramo
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Crea Nuova Tipologia</DialogTitle>
+              <DialogTitle>Crea Nuovo Ramo</DialogTitle>
               <DialogDescription>
-                Inserisci i dettagli per la nuova tipologia di assicurazione
+                Inserisci i dettagli per il nuovo ramo di assicurazione
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-4">
@@ -343,7 +343,7 @@ export default function TipologiePage() {
                 Annulla
               </Button>
               <Button onClick={createTipologia} disabled={!formData.nome.trim()}>
-                Crea Tipologia
+                Crea Ramo
               </Button>
             </DialogFooter>
           </DialogContent>
@@ -355,7 +355,7 @@ export default function TipologiePage() {
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Totale Tipologie</CardTitle>
+              <CardTitle className="text-sm font-medium">Totale Rami</CardTitle>
               <Tag className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -413,16 +413,16 @@ export default function TipologiePage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Elenco Tipologie</CardTitle>
+              <CardTitle>Elenco Rami</CardTitle>
               <CardDescription>
-                Visualizza e gestisci tutte le tipologie di assicurazione
+                Visualizza e gestisci tutti i rami di assicurazione
               </CardDescription>
             </div>
             <div className="flex items-center space-x-2">
               <div className="relative">
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Cerca tipologie..."
+                  placeholder="Cerca rami..."
                   value={searchTerm}
                   onChange={(e) => handleSearch(e.target.value)}
                   className="pl-8 w-[300px]"
@@ -436,7 +436,7 @@ export default function TipologiePage() {
             <div className="text-center py-8">Caricamento...</div>
           ) : tipologie.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
-              {searchTerm ? "Nessuna tipologia trovata" : "Nessuna tipologia presente"}
+              {searchTerm ? "Nessun ramo trovato" : "Nessun ramo presente"}
             </div>
           ) : (
             <>
@@ -564,9 +564,9 @@ export default function TipologiePage() {
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Modifica Tipologia</DialogTitle>
+            <DialogTitle>Modifica Ramo</DialogTitle>
             <DialogDescription>
-              Modifica i dettagli della tipologia di assicurazione
+              Modifica i dettagli del ramo di assicurazione
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">

@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { FileText, Building2, BarChart3, TrendingUp, Clock, CheckCircle, AlertCircle, Plus, Search } from "lucide-react"
 import Link from "next/link"
 import { useDashboardStats } from "@/hooks/use-dashboard-stats"
+import { UsageDashboard } from "@/components/billing/usage-dashboard"
 
 export default function DashboardPage() {
   const { stats, loading, error } = useDashboardStats();
@@ -36,6 +37,8 @@ export default function DashboardPage() {
           </Button>
         </div>
       </div>
+
+
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
@@ -270,6 +273,10 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Usage Dashboard */}
+      <UsageDashboard />
+      
     </div>
   )
 }

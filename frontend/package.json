@@ -6,7 +6,11 @@
     "build": "next build",
     "dev": "next dev",
     "lint": "next lint",
-    "start": "next start"
+    "start": "next start",
+    "setup:autumn": "tsx scripts/setup-autumn.ts",
+    "setup:stripe-portal": "tsx scripts/setup-stripe-portal.ts",
+    "setup:billing": "npm run setup:autumn && npm run setup:stripe-portal",
+    "test:setup": "node test-setup.js"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.1",
@@ -44,6 +48,7 @@
     "@supabase/ssr": "^0.6.1",
     "@supabase/supabase-js": "^2.50.5",
     "autoprefixer": "^10.4.20",
+    "autumn-js": "^0.0.102",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
@@ -60,8 +65,10 @@
     "react-resizable-panels": "^2.1.7",
     "recharts": "2.15.0",
     "sonner": "^1.7.1",
+    "stripe": "^18.3.0",
     "tailwind-merge": "^2.5.5",
     "tailwindcss-animate": "^1.0.7",
+    "tsx": "^4.20.3",
     "vaul": "^0.9.6",
     "zod": "^3.24.1"
   },

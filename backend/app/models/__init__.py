@@ -98,6 +98,45 @@ from .confronti import (
     ConfrontoResult,
 )
 
+from .brokers import (
+    BrokerBase,
+    BrokerCreate,
+    BrokerUpdate,
+    BrokerInDB,
+    Broker,
+    BrokerProfile,
+    BrokerResponse,
+    BrokerListResponse,
+)
+
+from .clients import (
+    ClientType,
+    IndividualProfileBase,
+    IndividualProfileCreate,
+    IndividualProfileUpdate,
+    IndividualProfile,
+    CompanyProfileBase,
+    CompanyProfileCreate,
+    CompanyProfileUpdate,
+    CompanyProfile,
+    ClientBase,
+    ClientCreate,
+    ClientCreateFlat,
+    ClientUpdate,
+    Client,
+    ClientResponse,
+    ClientListResponse,
+)
+
+from .interactions import (
+    InteractionCreate,
+    InteractionUpdate,
+    Interaction,
+    InteractionResponse,
+    InteractionListResponse,
+    InteractionType,
+)
+
 __all__ = [
     # Garanzie
     "GaranziaBase",
@@ -189,4 +228,40 @@ __all__ = [
     "ConfrontoAnalysis",
     "ConfrontoRequest",
     "ConfrontoResult",
+    
+    # Brokers
+    "BrokerBase",
+    "BrokerCreate",
+    "BrokerUpdate",
+    "BrokerInDB",
+    "Broker",
+    "BrokerProfile",
+    "BrokerResponse",
+    "BrokerListResponse",
+    
+    # Clients
+    "ClientType",
+    "IndividualProfileBase",
+    "IndividualProfileCreate",
+    "IndividualProfileUpdate",
+    "IndividualProfile",
+    "CompanyProfileBase",
+    "CompanyProfileCreate",
+    "CompanyProfileUpdate",
+    "CompanyProfile",
+    "ClientBase",
+    "ClientCreate",
+    "ClientCreateFlat",
+    "ClientUpdate",
+    "Client",
+    "ClientResponse",
+    "ClientListResponse",
+    
+    # Interactions
+    "InteractionCreate",
+    "InteractionUpdate",
+    "Interaction",
+    "InteractionResponse",
+    "InteractionListResponse",
+    "InteractionType",
 ]

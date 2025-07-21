@@ -11,10 +11,12 @@ import logging
 from contextlib import asynccontextmanager
 
 from app.config.settings import settings
-from app.routers import garanzie_router, compagnie_router, mapping_router, upload_router, system_router, tipologia_assicurazione_router, compagnia_tipologia_router
+from app.routers import garanzie_router, compagnie_router, mapping_router, upload_router, system_router, tipologia_assicurazione_router, compagnia_tipologia_router, clients_router, interactions_router
 from app.routers.confronti import router as confronti_router # Explicit import
 from app.routers.sezioni import router as sezioni_router
 from app.routers.auth import router as auth_router
+from app.routers.billing import router as billing_router
+from app.routers.brokers import router as brokers_router
 from app.utils.exceptions import CustomException
 
 # Setup logging
@@ -52,7 +54,7 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.ALLOWED_ORIGINS,
+    allow_origins=settings.allowed_origins_list,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -122,6 +124,10 @@ app.include_router(upload_router, prefix="/api/upload", tags=["Upload"])
 app.include_router(system_router, prefix="/api/system", tags=["System"])
 app.include_router(tipologia_assicurazione_router, prefix="/api/tipologia-assicurazione", tags=["Tipologia Assicurazione"])
 app.include_router(sezioni_router, prefix="/api/sezioni", tags=["Sezioni"])
+app.include_router(billing_router, prefix="/api", tags=["Billing"])
+app.include_router(brokers_router, prefix="/api", tags=["Brokers"])
+app.include_router(clients_router, prefix="/api", tags=["Clients"])
+app.include_router(interactions_router, prefix="/api", tags=["Interactions"])
 
 
 if __name__ == "__main__":
