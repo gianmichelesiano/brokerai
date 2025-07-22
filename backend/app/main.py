@@ -101,6 +101,19 @@ async def health_check():
     }
 
 
+# Debug CORS endpoint
+@app.get("/debug/cors")
+async def debug_cors():
+    """Debug CORS configuration"""
+    return {
+        "allowed_origins": settings.allowed_origins_list,
+        "environment": settings.ENVIRONMENT,
+        "debug": settings.DEBUG,
+        "cors_configured": True,
+        "raw_allowed_origins": settings.ALLOWED_ORIGINS
+    }
+
+
 # Root endpoint
 @app.get("/")
 async def root():
