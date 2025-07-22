@@ -12,23 +12,21 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
-import { Shield, Home, FileText, Building2, Search, BarChart3, History, Settings, User, Tag, Layers, LogOut, Users } from "lucide-react"
+import { Shield, Home, FileText, Building2, Search, BarChart3, History, Settings, User, Tag, Layers, LogOut, Users, HelpCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useAuth } from "@/hooks/use-auth"
 import Link from "next/link"
 
-const menuItems = [
+const mainMenuItems = [
   {
     title: "Dashboard",
     url: "/dashboard",
     icon: Home,
   },
-  {
-    title: "Clienti",
-    url: "/dashboard/clients",
-    icon: Users,
-  },
+]
+
+const polizzeMenuItems = [
   {
     title: "Rami",
     url: "/dashboard/tipologie",
@@ -44,11 +42,22 @@ const menuItems = [
     url: "/dashboard/garanzie",
     icon: FileText,
   },
+]
+
+const businessMenuItems = [
   {
     title: "Compagnie",
     url: "/dashboard/compagnie",
     icon: Building2,
   },
+  {
+    title: "Clienti",
+    url: "/dashboard/clients",
+    icon: Users,
+  },
+]
+
+const toolsMenuItems = [
   {
     title: "Mapping",
     url: "/dashboard/mapping",
@@ -76,6 +85,11 @@ const settingsItems = [
     title: "Profilo",
     url: "/dashboard/profile",
     icon: User,
+  },
+  {
+    title: "Supporto",
+    url: "/dashboard/support",
+    icon: HelpCircle,
   },
 ]
 
@@ -107,11 +121,11 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent className="bg-slate-900">
+        {/* Dashboard */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Menu Principale</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
+              {mainMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
@@ -128,6 +142,73 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        {/* Polizze */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-slate-400">Polizze</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {polizzeMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white pl-6"
+                  >
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Business */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-slate-400">Business</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {businessMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white"
+                  >
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Strumenti */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-slate-400">Strumenti</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {toolsMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white"
+                  >
+                    <Link href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Configurazione */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-slate-400">Configurazione</SidebarGroupLabel>
           <SidebarGroupContent>
