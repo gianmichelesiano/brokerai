@@ -21,6 +21,10 @@ from app.models.garanzie import (
 from app.services.garanzie_service import garanzie_service
 from app.utils.exceptions import NotFoundError, ValidationError
 from app.config.database import get_supabase
+from app.dependencies.auth import (
+    require_garanzie_access, get_user_company_filter, add_company_id_to_data
+)
+from app.models.companies import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +40,7 @@ async def get_garanzie(
     size: int = Query(20, ge=1, le=100, description="Dimensione pagina"),
     sort_by: Optional[str] = Query("created_at", description="Campo per ordinamento"),
     sort_order: Optional[str] = Query("desc", pattern="^(asc|desc)$", description="Ordine di ordinamento"),
+    user_context: UserContext = Depends(require_garanzie_access),
     supabase=Depends(get_supabase)
 ):
     """
@@ -67,7 +72,10 @@ async def get_garanzie(
 
 
 @router.get("/stats", response_model=GaranziaStats)
-async def get_garanzie_stats(supabase=Depends(get_supabase)):
+async def get_garanzie_stats(
+    user_context: UserContext = Depends(require_garanzie_access),
+    supabase=Depends(get_supabase)
+):
     """
     Recupera statistiche delle garanzie
     """
@@ -206,6 +214,7 @@ async def get_garanzie_by_tipologia_nome(
 @router.get("/{garanzia_id}", response_model=Garanzia)
 async def get_garanzia(
     garanzia_id: int,
+    user_context: UserContext = Depends(require_garanzie_access),
     supabase=Depends(get_supabase)
 ):
     """
@@ -237,6 +246,7 @@ async def get_garanzia(
 @router.post("/", response_model=Garanzia, status_code=status.HTTP_201_CREATED)
 async def create_garanzia(
     garanzia_data: GaranziaCreate,
+    user_context: UserContext = Depends(require_garanzie_access),
     supabase=Depends(get_supabase)
 ):
     """
@@ -274,6 +284,7 @@ async def create_garanzia(
 async def update_garanzia(
     garanzia_id: int,
     garanzia_data: GaranziaUpdate,
+    user_context: UserContext = Depends(require_garanzie_access),
     supabase=Depends(get_supabase)
 ):
     """
@@ -321,6 +332,7 @@ async def update_garanzia(
 @router.delete("/{garanzia_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_garanzia(
     garanzia_id: int,
+    user_context: UserContext = Depends(require_garanzie_access),
     supabase=Depends(get_supabase)
 ):
     """

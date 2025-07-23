@@ -9,6 +9,10 @@ from fastapi.responses import JSONResponse
 from app.services.interaction_service import get_interaction_service, InteractionService
 from app.services.auth_service import get_auth_service, AuthService
 from app.models.interactions import InteractionCreate, InteractionUpdate, InteractionResponse, InteractionListResponse
+from app.dependencies.auth import (
+    get_current_user_context, get_user_company_filter, add_company_id_to_data
+)
+from app.models.companies import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +56,7 @@ async def get_current_broker_id(
 async def create_interaction(
     interaction_data: InteractionCreate,
     client_id: str = Path(..., description="ID of the client"),
-    broker_id: str = Depends(get_current_broker_id),
+    user_context: UserContext = Depends(get_current_user_context),
     interaction_service: InteractionService = Depends(get_interaction_service)
 ) -> Dict[str, Any]:
     """
@@ -70,7 +74,7 @@ async def create_interaction(
         from uuid import UUID
         
         client_uuid = UUID(client_id)
-        broker_uuid = UUID(broker_id)
+        broker_uuid = UUID(user_context.user_id)
         
         result = await interaction_service.create_interaction(client_uuid, broker_uuid, interaction_data)
         
@@ -304,4 +308,4 @@ async def delete_interaction(
         raise HTTPException(
             status_code=500,
             detail="Errore interno del server"
-        ) 
+        )

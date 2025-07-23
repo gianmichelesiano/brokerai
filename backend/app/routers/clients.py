@@ -9,6 +9,10 @@ from fastapi.responses import JSONResponse
 from app.services.client_service import get_client_service, ClientService
 from app.services.auth_service import get_auth_service, AuthService
 from app.models.clients import ClientCreate, ClientUpdate, ClientResponse, ClientListResponse, ClientCreateFlat
+from app.dependencies.auth import (
+    get_current_user_context, get_user_company_filter, add_company_id_to_data
+)
+from app.models.companies import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +55,7 @@ async def get_current_broker_id(
 @router.post("/")
 async def create_client(
     client_data: ClientCreate,
-    broker_id: str = Depends(get_current_broker_id),
+    user_context: UserContext = Depends(get_current_user_context),
     client_service: ClientService = Depends(get_client_service)
 ) -> Dict[str, Any]:
     """
@@ -68,8 +72,8 @@ async def create_client(
     try:
         from uuid import UUID
         
-        # Convert broker_id to UUID
-        broker_uuid = UUID(broker_id)
+        # Use user_id as broker_id for multi-tenant system
+        broker_uuid = UUID(user_context.user_id)
         
         result = await client_service.create_client(client_data, broker_uuid)
         

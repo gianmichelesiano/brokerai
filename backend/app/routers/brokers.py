@@ -9,6 +9,10 @@ from fastapi.responses import JSONResponse
 from app.services.broker_service import get_broker_service, BrokerService
 from app.services.auth_service import get_auth_service, AuthService
 from app.models.brokers import BrokerCreate, BrokerUpdate, BrokerResponse
+from app.dependencies.auth import (
+    get_current_user_context, get_user_company_filter, add_company_id_to_data
+)
+from app.models.companies import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -95,7 +99,7 @@ async def get_current_broker_info(
 
 @router.get("/me")
 async def get_current_broker(
-    broker_id: str = Depends(get_current_broker_id),
+    user_context: UserContext = Depends(get_current_user_context),
     broker_service: BrokerService = Depends(get_broker_service)
 ) -> Dict[str, Any]:
     """
@@ -103,7 +107,7 @@ async def get_current_broker(
     Returns broker data from the brokers table
     """
     try:
-        result = await broker_service.get_broker_by_auth_id(broker_id)
+        result = await broker_service.get_broker_by_auth_id(user_context.user_id)
         
         if result.success:
             return {
@@ -305,4 +309,4 @@ async def create_my_broker_profile(
         raise HTTPException(
             status_code=500,
             detail="Errore interno del server"
-        ) 
+        )

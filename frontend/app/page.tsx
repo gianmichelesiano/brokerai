@@ -44,12 +44,12 @@ export default function LandingPage() {
             🚀 Powered by AI
           </Badge>
           <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
-            Sistema Intelligente per il
-            <span className="text-slate-700"> Confronto Garanzie</span> Assicurative
+            Trasforma <span className="text-slate-700">Settimane di Analisi</span> in 
+            <span className="text-blue-600"> Minuti di AI</span>
           </h1>
           <p className="text-lg sm:text-xl text-gray-600 mb-8 leading-relaxed max-w-3xl mx-auto">
-            Analizza automaticamente le polizze assicurative con l'intelligenza artificiale, confronta le coperture tra
-            diverse compagnie e prendi decisioni informate in pochi click.
+            <strong>BrokerAI</strong> è l'unica piattaforma che automatizza completamente il confronto delle polizze assicurative. 
+            <span className="text-slate-800 font-semibold">Riduci del 95% il tempo di analisi</span> e servi più clienti con decisioni più precise.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button size="lg" asChild className="text-lg px-8 w-full sm:w-auto">
@@ -68,10 +68,11 @@ export default function LandingPage() {
       <section id="features" className="py-12 sm:py-16 lg:py-20 px-4 bg-white">
         <div className="container mx-auto">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Funzionalità Principali</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Perché i Broker Scelgono BrokerAI</h2>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
-              Un sistema completo per gestire, analizzare e confrontare le garanzie assicurative con la potenza
-              dell'intelligenza artificiale.
+              La prima piattaforma <strong>AI-native</strong> per il settore assicurativo italiano. 
+              <span className="text-slate-800">10x più veloce</span> nell'analisi delle polizze con 
+              <span className="text-slate-800">95% di riduzione degli errori</span>.
             </p>
           </div>
 
@@ -251,10 +252,10 @@ export default function LandingPage() {
       <section id="pricing" className="py-12 sm:py-16 lg:py-20 px-4 bg-gray-50">
         <div className="container mx-auto">
           <div className="text-center mb-12 sm:mb-16">
-            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">Scegli il Piano Perfetto per Te</h2>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-4">ROI Misurabile dal Primo Giorno</h2>
             <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
+              <strong>Riduzione 90% tempo analisi</strong> • <strong>Aumento 300% produttività</strong> • <strong>Riduzione 95% errori</strong><br/>
               Piani flessibili per ogni esigenza, dal broker individuale alle grandi organizzazioni.
-              Inizia gratis e scala quando ne hai bisogno.
             </p>
           </div>
           
@@ -343,9 +344,9 @@ export default function LandingPage() {
       {/* CTA Section */}
       <section className="py-12 sm:py-16 lg:py-20 px-4 bg-slate-800">
         <div className="container mx-auto text-center">
-          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Pronto a Rivoluzionare la Tua Analisi Assicurativa?</h2>
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-4">Unisciti ai Broker che Hanno Già Scelto l'AI</h2>
           <p className="text-lg sm:text-xl text-slate-200 mb-8 max-w-2xl mx-auto">
-            Inizia subito ad utilizzare il sistema più avanzato per il confronto delle polizze assicurative.
+            <strong>Risparmia 20 ore a settimana</strong> e aumenta la tua competitività con la prima piattaforma AI-native per il settore assicurativo italiano.
           </p>
           <Button size="lg" variant="secondary" asChild className="text-lg px-8 w-full sm:w-auto">
             <Link href="/dashboard">

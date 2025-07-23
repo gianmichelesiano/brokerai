@@ -19,6 +19,10 @@ from app.services.confronti_service import AnalizzatorePolizze
 from app.config.database import get_supabase, Tables # Import Tables
 from app.routers.auth import get_current_user # Import get_current_user
 from app.utils.exceptions import NotFoundError, DatabaseError # Import exceptions
+from app.dependencies.auth import (
+    get_current_user_context, get_user_company_filter, add_company_id_to_data
+)
+from app.models.companies import UserContext
 
 
 logger = logging.getLogger(__name__)
@@ -139,20 +143,16 @@ async def prepara_dati_confronto(supabase, garanzia_id: int, compagnie_ids: List
 @router.post("/salva", response_model=ConfrontoSalvato)
 async def salva_confronto(
     confronto: ConfrontoSalvatoCreate,
-    current_user = Depends(get_current_user),
+    user_context: UserContext = Depends(get_current_user_context),
     supabase = Depends(get_supabase)
 ):
     """Salva un confronto completato"""
     try:
-        if not current_user:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Utente non autenticato"
-            )
-        logger.info(f"current_user: {current_user}")
+        logger.info(f"user_context: {user_context}")
         # Prepara i dati per l'inserimento
         data_to_insert = confronto.model_dump()
-        data_to_insert["utente_id"] = current_user["user"]["id"]
+        data_to_insert["utente_id"] = user_context.user_id
+        data_to_insert["company_id"] = user_context.company_id
         data_to_insert["created_at"] = datetime.utcnow().isoformat()
         data_to_insert["updated_at"] = datetime.utcnow().isoformat()
 
@@ -169,7 +169,7 @@ async def salva_confronto(
             # Fallback: cerca il confronto appena creato per utente, nome e created_at
             fallback = supabase.table(Tables.CONFRONTI_SALVATI)\
                 .select("*")\
-                .eq("utente_id", current_user["user"]["id"])\
+                .eq("utente_id", user_context.user_id)\
                 .eq("nome", confronto.nome)\
                 .order("created_at", desc=True)\
                 .limit(1)\

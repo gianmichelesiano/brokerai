@@ -17,6 +17,7 @@ from app.routers.sezioni import router as sezioni_router
 from app.routers.auth import router as auth_router
 from app.routers.billing import router as billing_router
 from app.routers.brokers import router as brokers_router
+from app.routers.companies import router as companies_router
 from app.utils.exceptions import CustomException
 
 # Setup logging
@@ -141,6 +142,7 @@ app.include_router(billing_router, prefix="/api", tags=["Billing"])
 app.include_router(brokers_router, prefix="/api", tags=["Brokers"])
 app.include_router(clients_router, prefix="/api", tags=["Clients"])
 app.include_router(interactions_router, prefix="/api", tags=["Interactions"])
+app.include_router(companies_router, prefix="/api", tags=["Companies"])
 
 
 if __name__ == "__main__":

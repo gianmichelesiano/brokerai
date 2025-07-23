@@ -23,6 +23,10 @@ from app.models.compagnie import (
 from app.config.database import get_supabase
 from app.utils.exceptions import NotFoundError, ValidationError
 from app.services.ai_extractor import estrai_sezione_ai_sync, is_ai_available
+from app.dependencies.auth import (
+    get_current_user_context, get_user_company_filter, add_company_id_to_data
+)
+from app.models.companies import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -66,17 +70,18 @@ async def get_compagnie(
     size: int = Query(20, ge=1, le=100, description="Dimensione pagina"),
     sort_by: Optional[str] = Query("created_at", description="Campo per ordinamento"),
     sort_order: Optional[str] = Query("desc", pattern="^(asc|desc)$", description="Ordine di ordinamento"),
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
-    Recupera lista paginata di compagnie con filtri opzionali
+    Recupera lista paginata di compagnie con filtri opzionali (filtrate per company)
     """
     try:
         # Calcola offset per paginazione
         offset = (page - 1) * size
         
-        # Costruisci query base
-        query = supabase.table("compagnie").select("*")
+        # Costruisci query base con filtro company
+        query = supabase.table("compagnie").select("*").eq("company_id", user_context.company_id)
         
         # Applica filtro di ricerca se presente
         if search:
@@ -248,14 +253,15 @@ async def get_compagnia(
 @router.post("/", response_model=Compagnia, status_code=status.HTTP_201_CREATED)
 async def create_compagnia(
     compagnia_data: CompagniaCreate,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
     Crea una nuova compagnia
     """
     try:
-        # Verifica se esiste già una compagnia con lo stesso nome
-        existing = supabase.table("compagnie").select("id").eq("nome", compagnia_data.nome).execute()
+        # Verifica se esiste già una compagnia con lo stesso nome nella stessa company
+        existing = supabase.table("compagnie").select("id").eq("nome", compagnia_data.nome).eq("company_id", user_context.company_id).execute()
         if existing.data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
@@ -268,6 +274,7 @@ async def create_compagnia(
         
         insert_data = {
             "nome": compagnia_data.nome,
+            "company_id": user_context.company_id,  # Aggiungi company_id
             "created_at": now,
             "updated_at": now
         }
@@ -289,7 +296,7 @@ async def create_compagnia(
             "updated_at": item.get("updated_at") or now
         }
         
-        return Compagnia(**compagnia_data)
+        return compagnia_data
         
     except HTTPException:
         raise
