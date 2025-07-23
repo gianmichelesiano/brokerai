@@ -114,13 +114,13 @@ export function AppSidebar() {
   return (
     <Sidebar className="bg-slate-900 border-slate-700">
       <SidebarHeader className="bg-slate-800 border-b border-slate-700">
-        <div className="flex items-center gap-2 px-2 py-2">
-          <Shield className="h-6 w-6 text-slate-300" />
-          <span className="font-bold text-lg text-white">Broker AI</span>
+        <div className="flex items-center gap-2 px-3 py-3">
+          <Shield className="h-5 w-5 text-slate-300" />
+          <span className="font-bold text-base text-white">Broker AI</span>
         </div>
       </SidebarHeader>
 
-      <SidebarContent className="bg-slate-900">
+      <SidebarContent className="bg-slate-900 py-2">
         {/* Dashboard */}
         <SidebarGroup>
           <SidebarGroupContent>
@@ -129,11 +129,11 @@ export function AppSidebar() {
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white"
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white h-8 px-3"
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -144,18 +144,18 @@ export function AppSidebar() {
 
         {/* Polizze */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Polizze</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-400 text-xs font-medium px-3 py-1">Polizze</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {polizzeMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white pl-6"
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white h-7 px-3"
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -166,18 +166,18 @@ export function AppSidebar() {
 
         {/* Business */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Business</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-400 text-xs font-medium px-3 py-1">Business</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {businessMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white"
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white h-7 px-3"
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -188,18 +188,18 @@ export function AppSidebar() {
 
         {/* Strumenti */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Strumenti</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-400 text-xs font-medium px-3 py-1">Strumenti</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {toolsMenuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white"
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white h-7 px-3"
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -210,18 +210,18 @@ export function AppSidebar() {
 
         {/* Configurazione */}
         <SidebarGroup>
-          <SidebarGroupLabel className="text-slate-400">Configurazione</SidebarGroupLabel>
+          <SidebarGroupLabel className="text-slate-400 text-xs font-medium px-3 py-1">Configurazione</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
               {settingsItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton
                     asChild
-                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white"
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white h-7 px-3"
                   >
                     <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-sm">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -233,16 +233,16 @@ export function AppSidebar() {
 
       <SidebarFooter className="bg-slate-900 border-t border-slate-700">
         {user && (
-          <div className="p-2 space-y-2">
+          <div className="p-2 space-y-1">
             <div className="flex items-center gap-2 px-2 py-1">
-              <Avatar className="h-8 w-8">
+              <Avatar className="h-6 w-6">
                 <AvatarImage src={user.user_metadata?.avatar_url} />
                 <AvatarFallback className="bg-slate-700 text-slate-300 text-xs">
                   {getUserInitials()}
                 </AvatarFallback>
               </Avatar>
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
+                <p className="text-xs font-medium text-white truncate">
                   {getUserDisplayName()}
                 </p>
                 <p className="text-xs text-slate-400 truncate">
@@ -253,16 +253,16 @@ export function AppSidebar() {
             <Button
               variant="ghost"
               size="sm"
-              className="w-full justify-start text-slate-300 hover:bg-slate-800 hover:text-white"
+              className="w-full justify-start text-slate-300 hover:bg-slate-800 hover:text-white h-7 text-xs"
               onClick={signOut}
               disabled={loading}
             >
-              <LogOut className="h-4 w-4 mr-2" />
+              <LogOut className="h-3 w-3 mr-2" />
               Logout
             </Button>
           </div>
         )}
-        <div className="px-2 py-2 text-xs text-slate-400 border-t border-slate-700">
+        <div className="px-2 py-1 text-xs text-slate-400 border-t border-slate-700">
           v1.0.0 - Broker AI
         </div>
       </SidebarFooter>

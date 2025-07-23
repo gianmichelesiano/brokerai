@@ -244,7 +244,7 @@ export default function MappingPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Tag className="h-5 w-5" />
-              Tipologia Assicurazione
+              Rami Assicurazione
             </CardTitle>
           </CardHeader>
           <CardContent>

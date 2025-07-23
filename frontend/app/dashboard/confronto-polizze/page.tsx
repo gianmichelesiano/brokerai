@@ -270,10 +270,10 @@ export default function ConfrontoPolizzePage() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Tag className="h-5 w-5" />
-            Tipologia Assicurazione
+            Rami Assicurazione
           </CardTitle>
           <CardDescription>
-            Seleziona il tipo di assicurazione da confrontare
+            Seleziona il ramo di assicurazione da confrontare
           </CardDescription>
         </CardHeader>
         <CardContent>

@@ -95,6 +95,7 @@ export default function AnalizzaPolizzaPage() {
   const [isEditingAiText, setIsEditingAiText] = useState(false)
   const [isSavingAiText, setIsSavingAiText] = useState(false)
   const [isCheckingAnalyses, setIsCheckingAnalyses] = useState<Set<number>>(new Set())
+  const [analyzingAllGaranzie, setAnalyzingAllGaranzie] = useState<Set<number>>(new Set())
   const [showLimitActions, setShowLimitActions] = useState<{
     show: boolean;
     limitType?: 'analyses' | 'ai_analyses' | 'exports' | 'companies';
@@ -383,6 +384,115 @@ export default function AnalizzaPolizzaPage() {
       setIsCheckingAnalyses(prev => {
         const newSet = new Set(prev)
         garanzieToCheck.forEach(garanzia => newSet.delete(garanzia.id))
+        return newSet
+      })
+    }
+  }
+
+  // Handle analyze all garanzie for a tipologia
+  const handleAnalyzeAllGaranzie = async (tipologiaId: number) => {
+    if (!data) return
+    
+    const tipologia = data.tipologie.find(t => t.tipologia_id === tipologiaId)
+    if (!tipologia?.garanzie?.garanzie.items) {
+      toast({
+        title: "Errore",
+        description: "Nessuna garanzia disponibile per l'analisi",
+        variant: "destructive"
+      })
+      return
+    }
+
+    const garanzieToAnalyze = tipologia.garanzie.garanzie.items.filter(
+      garanzia => !existingAnalyses.get(garanzia.id)
+    )
+
+    if (garanzieToAnalyze.length === 0) {
+      toast({
+        title: "Info",
+        description: "Tutte le garanzie sono già state analizzate",
+        variant: "default"
+      })
+      return
+    }
+
+    try {
+      setAnalyzingAllGaranzie(prev => new Set(prev).add(tipologiaId))
+      
+      // Check billing limits before starting bulk analysis
+      const canAnalyze = await checkLimitWithNotification('analysis', `analisi di ${garanzieToAnalyze.length} garanzie`);
+      if (!canAnalyze) {
+        setAnalyzingAllGaranzie(prev => {
+          const newSet = new Set(prev)
+          newSet.delete(tipologiaId)
+          return newSet
+        })
+        return;
+      }
+
+      let successCount = 0
+      let errorCount = 0
+
+      // Process garanzie sequentially to avoid overwhelming the system
+      for (const garanzia of garanzieToAnalyze) {
+        try {
+          const response = await fetch(`${COMPAGNIE_API_URL}/analizza-polizza`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              compagnia_id: parseInt(compagniaId),
+              garanzia_id: garanzia.id
+            })
+          })
+
+          if (response.ok) {
+            successCount++
+            // Update existing analyses state
+            setExistingAnalyses(prev => new Map(prev).set(garanzia.id, true))
+            
+            // Increment usage for each successful analysis
+            try {
+              await incrementUsage('analyses')
+            } catch (error) {
+              console.error('Errore nell\'incremento utilizzo:', error)
+            }
+          } else {
+            errorCount++
+          }
+        } catch (error) {
+          console.error(`Errore nell'analisi della garanzia ${garanzia.id}:`, error)
+          errorCount++
+        }
+      }
+
+      // Show results
+      if (successCount > 0) {
+        toast({
+          title: "Analisi completata",
+          description: `${successCount} garanzie analizzate con successo${errorCount > 0 ? `, ${errorCount} errori` : ''}`,
+          variant: "default"
+        })
+      } else {
+        toast({
+          title: "Errore",
+          description: "Nessuna garanzia è stata analizzata con successo",
+          variant: "destructive"
+        })
+      }
+
+    } catch (error) {
+      console.error("Errore nell'analisi bulk:", error)
+      toast({
+        title: "Errore",
+        description: "Errore durante l'analisi delle garanzie",
+        variant: "destructive"
+      })
+    } finally {
+      setAnalyzingAllGaranzie(prev => {
+        const newSet = new Set(prev)
+        newSet.delete(tipologiaId)
         return newSet
       })
     }
@@ -833,17 +943,43 @@ export default function AnalizzaPolizzaPage() {
                           <div>
                             {/* Garanzie Stats */}
                             <div className="mb-4">
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Shield className="h-4 w-4" />
-                                  <span>{tipologia.garanzie.garanzie.total} garanzie totali</span>
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                  <div className="flex items-center gap-1">
+                                    <Shield className="h-4 w-4" />
+                                    <span>{tipologia.garanzie.garanzie.total} garanzie totali</span>
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <Tag className="h-4 w-4" />
+                                    <span>
+                                      {new Set(tipologia.garanzie.garanzie.items.map(g => g.sezione)).size} sezioni
+                                    </span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <Tag className="h-4 w-4" />
-                                  <span>
-                                    {new Set(tipologia.garanzie.garanzie.items.map(g => g.sezione)).size} sezioni
-                                  </span>
-                                </div>
+                                
+                                {/* Analizza tutto button */}
+                                <Button
+                                  size="sm"
+                                  variant="default"
+                                  onClick={(e) => {
+                                    e.stopPropagation()
+                                    handleAnalyzeAllGaranzie(tipologia.tipologia_id)
+                                  }}
+                                  disabled={analyzingAllGaranzie.has(tipologia.tipologia_id)}
+                                  className="h-8 px-3 text-xs"
+                                >
+                                  {analyzingAllGaranzie.has(tipologia.tipologia_id) ? (
+                                    <>
+                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                      Analizzando tutto...
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Search className="mr-1 h-3 w-3" />
+                                      Analizza tutto
+                                    </>
+                                  )}
+                                </Button>
                               </div>
                             </div>
                             
