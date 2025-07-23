@@ -1,5 +1,7 @@
 'use client'
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
+
 import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -93,9 +95,7 @@ export default function ConfrontoPolizzePage() {
   const fetchTipologie = async () => {
     try {
       setLoadingData(true)
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      if (!response.ok) throw new Error('Errore nel caricamento delle tipologie')
-      const data = await response.json()
+      const data = await apiGet<{ items: Tipologia[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       setTipologie(data.items || [])
     } catch (error) {
       console.error('Errore:', error)
@@ -110,15 +110,11 @@ export default function ConfrontoPolizzePage() {
       setLoadingData(true)
       
       // Fetch all compagnie (no filter by tipologia)
-      const compagnieRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      if (!compagnieRes.ok) throw new Error('Errore nel caricamento delle compagnie')
-      const compagnieData = await compagnieRes.json()
+      const compagnieData = await apiGet<{ items: Compagnia[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       setCompagnie(compagnieData.items || [])
 
       // Fetch garanzie filtered by tipologia
-      const garanzieRes = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/by-tipologia/${selectedTipologia}?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      if (!garanzieRes.ok) throw new Error('Errore nel caricamento delle garanzie')
-      const garanzieData = await garanzieRes.json()
+      const garanzieData = await apiGet<{ garanzie: { items: Garanzia[] } }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/by-tipologia/${selectedTipologia}?page=1&size=100&sort_by=created_at&sort_order=desc`)
       setGaranzie(garanzieData.garanzie?.items || [])
     } catch (error) {
       console.error('Errore:', error)
@@ -162,27 +158,28 @@ export default function ConfrontoPolizzePage() {
 
     setLoading(true)
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/compare`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compagnia_ids: selectedCompagnie,
-          garanzia_ids: selectedGaranzie,
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error('Errore durante il confronto')
+      const requestBody = {
+        compagnia_ids: selectedCompagnie,
+        garanzie_ids: selectedGaranzie,
       }
+      console.log('Sending request:', requestBody)
+      console.log('selectedCompagnie type:', typeof selectedCompagnie, 'value:', selectedCompagnie)
+      console.log('selectedGaranzie type:', typeof selectedGaranzie, 'value:', selectedGaranzie)
+      const data = await apiPost<ConfrontoRisultato>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/compare`, requestBody)
 
-      const data = await response.json()
       setRisultati(data)
       toast.success("Confronto completato con successo")
     } catch (error) {
       console.error('Errore:', error)
-      toast.error("Errore durante il confronto")
+      
+      // Messaggio più informativo basato sul tipo di errore
+      if (error?.response?.status === 404) {
+        toast.error("Nessun documento analizzato trovato. Carica e analizza documenti per le compagnie selezionate prima di effettuare il confronto.")
+      } else if (error?.response?.status === 400) {
+        toast.error("Dati insufficienti per il confronto. Sono necessari almeno 2 documenti analizzati.")
+      } else {
+        toast.error("Errore durante il confronto")
+      }
     } finally {
       setLoading(false)
     }
@@ -217,30 +214,18 @@ export default function ConfrontoPolizzePage() {
         return;
       }
 
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/salva`, {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`
-        },
-        body: JSON.stringify({
-          nome: saveForm.nome,
-          descrizione: saveForm.descrizione,
-          tipologia_id: selectedTipologia,
-          compagnie_ids: selectedCompagnie,
-          garanzie_ids: selectedGaranzie,
-          dati_confronto: risultati
-        })
+      await apiPost(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/salva`, {
+        nome: saveForm.nome,
+        descrizione: saveForm.descrizione,
+        tipologia_id: selectedTipologia,
+        compagnie_ids: selectedCompagnie,
+        garanzie_ids: selectedGaranzie,
+        dati_confronto: risultati
       })
       
-      if (response.ok) {
-        toast.success('Confronto salvato con successo')
-        setShowSaveDialog(false)
-        setSaveForm({ nome: '', descrizione: '' }) // Reset form
-      } else {
-        const errorData = await response.json()
-        toast.error(`Errore nel salvataggio: ${errorData.detail || response.statusText}`)
-      }
+      toast.success('Confronto salvato con successo')
+      setShowSaveDialog(false)
+      setSaveForm({ nome: '', descrizione: '' }) // Reset form
     } catch (error) {
       console.error('Errore nel salvataggio:', error)
       toast.error('Errore nel salvataggio del confronto')

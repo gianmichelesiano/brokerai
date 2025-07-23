@@ -22,7 +22,7 @@ class ConfrontoAnalysis(BaseModel):
 
 class ConfrontoRequest(BaseModel):
     compagnia_ids: List[int] = Field(..., min_items=2)
-    garanzia_ids: List[int] = Field(..., min_items=1)
+    garanzie_ids: List[int] = Field(..., min_items=1)
 
 class ConfrontoResult(BaseModel):
     risultati_analisi: List[ConfrontoAnalysis]

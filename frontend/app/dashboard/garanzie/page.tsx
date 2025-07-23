@@ -1,4 +1,6 @@
 "use client"
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
+
 
 import { useState, useEffect } from "react"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -101,21 +103,14 @@ export default function GaranziePage() {
         params.append("sezione", sezione);
       }
 
-      let response;
-      let data;
-
       if (tipologiaId === "all") {
-        response = await fetch(`${API_BASE_URL}/?${params}`);
-        if (!response.ok) throw new Error("Errore nel caricamento delle garanzie");
-        data = await response.json();
+        const data = await apiGet<GaranziaList>(`${API_BASE_URL}/?${params}`);
         setGaranzie(data.items);
         setTotalPages(data.pages);
         setCurrentPage(data.page);
         setTipologiaInfo(null); // Clear tipologia info when showing all
       } else {
-        response = await fetch(`${API_BASE_URL}/by-tipologia/${tipologiaId}?${params}`);
-        if (!response.ok) throw new Error("Errore nel caricamento delle garanzie");
-        data = await response.json();
+        const data = await apiGet<{ garanzie: GaranziaList; tipologia: TipologiaInfo }>(`${API_BASE_URL}/by-tipologia/${tipologiaId}?${params}`);
         setGaranzie(data.garanzie.items);
         setTotalPages(data.garanzie.pages);
         setCurrentPage(data.garanzie.page);
@@ -135,10 +130,7 @@ export default function GaranziePage() {
   // Fetch tipologie
   const fetchTipologie = async () => {
     try {
-      const response = await fetch(`${TIPOLOGIE_API_URL}/?page=1&size=100`)
-      if (!response.ok) throw new Error("Errore nel caricamento delle tipologie")
-      
-      const data = await response.json()
+      const data = await apiGet<{ items: TipologiaAssicurazione[] }>(`${TIPOLOGIE_API_URL}/?page=1&size=100`)
       setTipologie(data.items)
     } catch (error) {
       console.error("Errore nel caricamento delle tipologie:", error)
@@ -148,10 +140,7 @@ export default function GaranziePage() {
   // Fetch sezioni
   const fetchSezioni = async () => {
     try {
-      const response = await fetch(`${SEZIONI_API_URL}/all`)
-      if (!response.ok) throw new Error("Errore nel caricamento delle sezioni")
-      
-      const data = await response.json()
+      const data = await apiGet<Sezione[]>(`${SEZIONI_API_URL}/all`)
       setSezioni(data)
     } catch (error) {
       console.error("Errore nel caricamento delle sezioni:", error)
@@ -161,10 +150,7 @@ export default function GaranziePage() {
   // Fetch sezioni stats (for filter dropdown)
   const fetchSezioniStats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/sezioni`)
-      if (!response.ok) throw new Error("Errore nel caricamento delle statistiche sezioni")
-      
-      const data = await response.json()
+      const data = await apiGet<Array<{ sezione: string; count: number }>>(`${API_BASE_URL}/sezioni`)
       setSezioniStats(data)
     } catch (error) {
       console.error("Errore nel caricamento delle statistiche sezioni:", error)
@@ -174,16 +160,7 @@ export default function GaranziePage() {
   // Create garanzia
   const createGaranzia = async () => {
     try {
-      const response = await fetch(API_BASE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nella creazione")
-      }
+      await apiPost(API_BASE_URL, formData)
       
       toast({
         title: "Successo",
@@ -215,16 +192,7 @@ export default function GaranziePage() {
     if (!editingGaranzia) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${editingGaranzia.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nell'aggiornamento")
-      }
+      await apiPut(`${API_BASE_URL}/${editingGaranzia.id}`, formData)
       
       toast({
         title: "Successo",
@@ -257,11 +225,7 @@ export default function GaranziePage() {
     if (!confirm("Sei sicuro di voler eliminare questa garanzia?")) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: "DELETE"
-      })
-      
-      if (!response.ok) throw new Error("Errore nell'eliminazione")
+      await apiDelete(`${API_BASE_URL}/${id}`)
       
       toast({
         title: "Successo",

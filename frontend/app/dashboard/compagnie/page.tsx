@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -62,22 +63,14 @@ export default function CompagniePage() {
   const loadCompagnie = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`${API_BASE_URL}/?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      
-      if (!response.ok) {
-        throw new Error("Errore nel caricamento delle compagnie")
-      }
-      
-      const data = await response.json()
+      const data = await apiGet<{ items: Compagnia[] }>(`${API_BASE_URL}/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       const compagnieBase: Compagnia[] = data.items || []
 
       // Recupera le tipologie per ogni compagnia in parallelo
       const compagnieWithTipologie = await Promise.all(
         compagnieBase.map(async (compagnia) => {
           try {
-            const res = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia/compagnia/${compagnia.id}/tipologie`)
-            if (!res.ok) return { ...compagnia, tipologie: [] }
-            const tipData = await res.json()
+            const tipData = await apiGet<{ tipologie: TipologiaConPolizza[]; total_tipologie: number }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia/compagnia/${compagnia.id}/tipologie`)
             return {
               ...compagnia,
               tipologie: tipData.tipologie || [],

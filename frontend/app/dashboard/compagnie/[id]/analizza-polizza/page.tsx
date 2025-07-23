@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -113,15 +114,12 @@ export default function AnalizzaPolizzaPage() {
   const loadData = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`${API_BASE_URL}/compagnia/${compagniaId}/tipologie`)
-      
-      if (!response.ok) {
-        throw new Error("Errore nel caricamento dei dati")
-      }
-      
-      const responseData = await response.json()
+      console.log(`🔍 Loading data for compagnia ${compagniaId}...`)
+      const responseData = await apiGet<CompagniaAnalisiData>(`${API_BASE_URL}/compagnia/${compagniaId}/tipologie`)
+      console.log(`✅ Loaded data for compagnia ${compagniaId}:`, responseData)
       setData(responseData)
     } catch (error) {
+      console.error(`❌ Error loading data for compagnia ${compagniaId}:`, error)
       toast({
         title: "Errore",
         description: "Impossibile caricare i dati della compagnia",
@@ -153,16 +151,12 @@ export default function AnalizzaPolizzaPage() {
   // Load garanzie for a specific tipologia
   const loadGaranzie = async (tipologiaId: number) => {
     try {
-      const response = await fetch(`${GARANZIE_API_URL}/by-tipologia/${tipologiaId}?size=100`)
-      
-      if (!response.ok) {
-        throw new Error("Errore nel caricamento delle garanzie")
-      }
-      
-      const garanzieData: GaranzieByTipologia = await response.json()
+      console.log(`🔍 Loading garanzie for tipologia ${tipologiaId}...`)
+      const garanzieData: GaranzieByTipologia = await apiGet<GaranzieByTipologia>(`${GARANZIE_API_URL}/by-tipologia/${tipologiaId}?size=100`)
+      console.log(`✅ Loaded ${garanzieData?.garanzie?.items?.length || 0} garanzie for tipologia ${tipologiaId}`)
       return garanzieData
     } catch (error) {
-      console.error(`Errore nel caricamento garanzie per tipologia ${tipologiaId}:`, error)
+      console.error(`❌ Errore nel caricamento garanzie per tipologia ${tipologiaId}:`, error)
       toast({
         title: "Errore",
         description: `Impossibile caricare le garanzie per la tipologia ${tipologiaId}`,
@@ -238,13 +232,8 @@ export default function AnalizzaPolizzaPage() {
   // Check if analysis exists for a garanzia
   const checkExistingAnalysis = async (garanziaId: number): Promise<boolean> => {
     try {
-      const response = await fetch(`${COMPAGNIE_API_URL}/${compagniaId}/analisi/${garanziaId}/exists`)
-      
-      if (response.ok) {
-        const result = await response.json()
-        return result.exists
-      }
-      return false
+      const result = await apiGet<{ exists: boolean }>(`${COMPAGNIE_API_URL}/${compagniaId}/analisi/${garanziaId}/exists`)
+      return result.exists
     } catch (error) {
       console.error(`Errore nel controllo analisi esistente per garanzia ${garanziaId}:`, error)
       return false
@@ -254,13 +243,7 @@ export default function AnalizzaPolizzaPage() {
   // Load existing analysis for a garanzia
   const handleViewExistingAnalysis = async (garanziaId: number) => {
     try {
-      const response = await fetch(`${COMPAGNIE_API_URL}/${compagniaId}/analisi/${garanziaId}`)
-      
-      if (!response.ok) {
-        throw new Error("Errore nel caricamento dell'analisi esistente")
-      }
-      
-      const result = await response.json()
+      const result = await apiGet<AnalisiResult>(`${COMPAGNIE_API_URL}/${compagniaId}/analisi/${garanziaId}`)
       
       // Show results in dialog
       setAnalisiResult(result)
@@ -299,21 +282,9 @@ export default function AnalizzaPolizzaPage() {
     try {
       setIsSavingAiText(true)
       
-      const response = await fetch(`${COMPAGNIE_API_URL}/${analisiResult.compagnia_id}/analisi/${analisiResult.garanzia_id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          ai_testo_estratto: editedAiText
-        })
+      await apiPut(`${COMPAGNIE_API_URL}/${analisiResult.compagnia_id}/analisi/${analisiResult.garanzia_id}`, {
+        ai_testo_estratto: editedAiText
       })
-      
-      if (!response.ok) {
-        throw new Error("Errore nell'aggiornamento del testo estratto AI")
-      }
-      
-      const result = await response.json()
       
       // Update the analisiResult with the new text
       setAnalisiResult(prev => prev ? {
@@ -515,22 +486,10 @@ export default function AnalizzaPolizzaPage() {
       }
       
       // 2. Esegui l'analisi
-      const response = await fetch(`${COMPAGNIE_API_URL}/analizza-polizza`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          compagnia_id: parseInt(compagniaId),
-          garanzia_id: garanziaId
-        })
+      const result = await apiPost<AnalisiResult>(`${COMPAGNIE_API_URL}/analizza-polizza`, {
+        compagnia_id: parseInt(compagniaId),
+        garanzia_id: garanziaId
       })
-      
-      if (!response.ok) {
-        throw new Error("Errore nell'analisi della polizza")
-      }
-      
-      const result = await response.json()
       
       // 3. Incrementa utilizzo (con gestione automatica dei limiti)
       try {
@@ -746,31 +705,7 @@ export default function AnalizzaPolizzaPage() {
               <RefreshCw className={`mr-2 h-4 w-4 ${isLoading ? 'animate-spin' : ''}`} />
               Aggiorna
             </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                toast({
-                  title: "Test Toast",
-                  description: "Se vedi questo messaggio, il sistema di notifiche funziona!",
-                  variant: "default"
-                });
-              }}
-            >
-              🧪 Test Toast
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={() => {
-                setShowLimitActions({
-                  show: true,
-                  limitType: 'analyses',
-                  currentUsage: 5,
-                  limit: 5
-                });
-              }}
-            >
-              🚨 Test Limite
-            </Button>
+
           </div>
         </div>
       </div>

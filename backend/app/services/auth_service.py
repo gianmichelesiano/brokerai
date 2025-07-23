@@ -119,31 +119,49 @@ class AuthService:
         """Get current user from token using Supabase REST API"""
         import httpx
         try:
+            logger.info(f"🔍 AUTH SERVICE DEBUG - Validating token: {access_token[:20]}...")
+            
             from app.config.settings import settings
             supabase_url = getattr(settings, "SUPABASE_URL", None)
             supabase_key = getattr(settings, "SUPABASE_KEY", None)
+            
+            logger.info(f"🔍 AUTH SERVICE DEBUG - Supabase URL: {supabase_url}")
+            logger.info(f"🔍 AUTH SERVICE DEBUG - Supabase Key: {supabase_key[:20] if supabase_key else 'None'}...")
+            
             if not supabase_url or not supabase_key:
+                logger.error("❌ AUTH SERVICE DEBUG - Supabase URL o API KEY non configurati")
                 raise Exception("Supabase URL o API KEY non configurati")
+                
             url = f"{supabase_url}/auth/v1/user"
             headers = {
                 "Authorization": f"Bearer {access_token}",
                 "apikey": supabase_key
             }
+            
+            logger.info(f"🔍 AUTH SERVICE DEBUG - Making request to: {url}")
+            
             async with httpx.AsyncClient() as client:
                 resp = await client.get(url, headers=headers)
+                
+                logger.info(f"🔍 AUTH SERVICE DEBUG - Response status: {resp.status_code}")
+                logger.info(f"🔍 AUTH SERVICE DEBUG - Response headers: {dict(resp.headers)}")
+                
                 if resp.status_code == 200:
                     user_data = resp.json()
+                    logger.info(f"✅ AUTH SERVICE DEBUG - User validated: {user_data.get('email', 'unknown')}")
                     return {
                         "success": True,
                         "user": user_data
                     }
                 else:
+                    error_text = resp.text
+                    logger.error(f"❌ AUTH SERVICE DEBUG - Token validation failed: {resp.status_code} - {error_text}")
                     return {
                         "success": False,
-                        "error": f"Token non valido o scaduto ({resp.status_code})"
+                        "error": f"Token non valido o scaduto ({resp.status_code}): {error_text}"
                     }
         except Exception as e:
-            logger.error(f"❌ Get user error: {e}")
+            logger.error(f"❌ AUTH SERVICE DEBUG - Get user error: {e}")
             return {
                 "success": False,
                 "error": str(e)

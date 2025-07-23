@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useToast } from '@/hooks/use-toast'
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 interface BrokerProfile {
   id: string
   first_name: string
@@ -43,7 +44,8 @@ export function useBrokerProfile() {
         throw new Error('Errore nel caricamento del profilo')
       }
 
-      const data = await response.json()
+      // response già contiene i dati JSON
+const data = response
       if (data.success && data.broker) {
         setProfile(data.broker)
         return { success: true, profile: data.broker }
@@ -76,12 +78,10 @@ export function useBrokerProfile() {
         body: JSON.stringify(formData)
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Errore nel salvataggio del profilo')
-      }
+      
 
-      const data = await response.json()
+      // response già contiene i dati JSON
+const data = response
       if (data.success && data.broker) {
         setProfile(data.broker)
         toast({
@@ -118,12 +118,10 @@ export function useBrokerProfile() {
         body: JSON.stringify(formData)
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || 'Errore nella creazione del profilo')
-      }
+      
 
-      const data = await response.json()
+      // response già contiene i dati JSON
+const data = response
       if (data.success && data.broker) {
         setProfile(data.broker)
         toast({

@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -75,9 +76,7 @@ export default function MappingPage() {
 
   const fetchTipologie = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      if (!response.ok) throw new Error('Errore nel caricamento delle tipologie')
-      const data = await response.json()
+      const data = await apiGet<{ items: Tipologia[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/tipologia-assicurazione/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       setTipologie(data.items || [])
     } catch (error) {
       console.error('Errore:', error)
@@ -87,9 +86,7 @@ export default function MappingPage() {
 
   const fetchAllCompagnie = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      if (!response.ok) throw new Error('Errore nel caricamento delle compagnie')
-      const data = await response.json()
+      const data = await apiGet<{ items: Compagnia[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
       setCompagnie(data.items || [])
     } catch (error) {
       console.error('Errore:', error)
@@ -102,19 +99,10 @@ export default function MappingPage() {
       setLoadingData(true)
       
       // Chiamata singola ottimizzata all'endpoint matrice
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mapping/matrix/analisi`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          tipologia_id: parseInt(selectedTipologia),
-          compagnia_ids: selectedCompagnie
-        })
+      const data = await apiPost<{ garanzie: Garanzia[]; analisi: AnalisiResult[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/mapping/matrix/analisi`, {
+        tipologia_id: parseInt(selectedTipologia),
+        compagnia_ids: selectedCompagnie
       })
-      
-      if (!response.ok) throw new Error('Errore nel caricamento della matrice')
-      const data = await response.json()
       
       setGaranzie(data.garanzie || [])
       

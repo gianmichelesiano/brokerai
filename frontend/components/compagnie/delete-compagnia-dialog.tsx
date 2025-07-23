@@ -32,14 +32,7 @@ export function DeleteCompagniaDialog({ compagnia, isOpen, onClose, onSuccess }:
 
     try {
       setIsLoading(true)
-      const response = await fetch(`${API_BASE_URL}/${compagnia.id}`, {
-        method: "DELETE"
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nell'eliminazione")
-      }
+      await apiDelete(`${API_BASE_URL}/${compagnia.id}`)
       
       toast({
         title: "Successo",

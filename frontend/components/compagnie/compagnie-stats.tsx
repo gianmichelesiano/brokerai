@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Building, FileText, BarChart3, Calendar, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { apiGet } from "@/lib/api"
 
 interface CompagniaStats {
   total_compagnie: number
@@ -35,18 +36,13 @@ export function CompagnieStats({ refreshTrigger }: CompagnieStatsProps) {
   const loadStats = async () => {
     try {
       setIsLoading(true)
-      const response = await fetch(`${API_BASE_URL}/stats`)
-      
-      if (!response.ok) {
-        throw new Error("Errore nel caricamento delle statistiche")
-      }
-      
-      const data = await response.json()
+      const data = await apiGet<CompagniaStats>(`${API_BASE_URL}/stats`)
       setStats(data)
     } catch (error) {
+      console.error('Errore nel caricamento delle statistiche:', error)
       toast({
         title: "Errore",
-        description: "Impossibile caricare le statistiche",
+        description: error instanceof Error ? error.message : "Impossibile caricare le statistiche",
         variant: "destructive"
       })
     } finally {

@@ -1,4 +1,6 @@
-"use client"
+"use client"  
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
+
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
@@ -70,10 +72,7 @@ export default function SezioniPage() {
         params.append("search", search)
       }
 
-      const response = await fetch(`${API_BASE_URL}/?${params}`)
-      if (!response.ok) throw new Error("Errore nel caricamento delle sezioni")
-      
-      const data: SezioneList = await response.json()
+      const data: SezioneList = await apiGet<SezioneList>(`${API_BASE_URL}/?${params}`)
       setSezioni(data.items)
       setTotalPages(data.pages)
       setCurrentPage(data.page)
@@ -91,10 +90,7 @@ export default function SezioniPage() {
   // Fetch statistics
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/stats`)
-      if (!response.ok) throw new Error("Errore nel caricamento delle statistiche")
-      
-      const data: SezioneStats = await response.json()
+      const data: SezioneStats = await apiGet<SezioneStats>(`${API_BASE_URL}/stats`)
       setStats(data)
     } catch (error) {
       console.error("Errore nel caricamento delle statistiche:", error)
@@ -104,16 +100,7 @@ export default function SezioniPage() {
   // Create sezione
   const createSezione = async () => {
     try {
-      const response = await fetch(API_BASE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nella creazione")
-      }
+      await apiPost(API_BASE_URL, formData)
       
       toast({
         title: "Successo",
@@ -138,16 +125,7 @@ export default function SezioniPage() {
     if (!editingSezione) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${editingSezione.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nell'aggiornamento")
-      }
+      await apiPut(`${API_BASE_URL}/${editingSezione.id}`, formData)
       
       toast({
         title: "Successo",
@@ -173,14 +151,7 @@ export default function SezioniPage() {
     if (!confirm("Sei sicuro di voler eliminare questa sezione?")) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: "DELETE"
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nell'eliminazione")
-      }
+      await apiDelete(`${API_BASE_URL}/${id}`)
       
       toast({
         title: "Successo",

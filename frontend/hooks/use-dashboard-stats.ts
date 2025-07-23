@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { apiGet } from "@/lib/api";
 
 type GaranzieStats = {
   total_garanzie: number;
@@ -44,16 +45,9 @@ export function useDashboardStats() {
       setError(null);
       try {
         const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-        const [garanzieRes, compagnieRes] = await Promise.all([
-          fetch(`${baseUrl}/api/garanzie/stats`),
-          fetch(`${baseUrl}/api/compagnie/stats`),
-        ]);
-        if (!garanzieRes.ok || !compagnieRes.ok) {
-          throw new Error("Errore nel recupero delle statistiche");
-        }
         const [garanzie, compagnie] = await Promise.all([
-          garanzieRes.json(),
-          compagnieRes.json(),
+          apiGet<GaranzieStats>(`${baseUrl}/api/garanzie/stats`),
+          apiGet<CompagnieStats>(`${baseUrl}/api/compagnie/stats`),
         ]);
         if (!cancelled) {
           setStats({ garanzie, compagnie });

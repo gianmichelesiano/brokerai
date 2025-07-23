@@ -19,22 +19,31 @@ async def get_current_user_id(
     """
     Dependency to get current user ID from JWT token
     """
+    logger.info(f"🔍 AUTH DEBUG - Authorization header: {authorization[:50] if authorization else 'None'}...")
+    
     if not authorization or not authorization.startswith("Bearer "):
+        logger.error("❌ AUTH DEBUG - Token di accesso mancante o formato errato")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token di accesso mancante"
         )
     
     access_token = authorization.split(" ")[1]
+    logger.info(f"🔍 AUTH DEBUG - Token estratto: {access_token[:20]}...")
+    
     result = await auth_service.get_current_user(access_token)
+    logger.info(f"🔍 AUTH DEBUG - Risultato auth service: success={result.get('success')}, error={result.get('error')}")
     
     if not result["success"]:
+        logger.error(f"❌ AUTH DEBUG - Validazione token fallita: {result['error']}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail=result["error"]
         )
     
-    return result["user"]["id"]
+    user_id = result["user"]["id"]
+    logger.info(f"✅ AUTH DEBUG - User ID estratto: {user_id}")
+    return user_id
 
 
 async def get_current_user_context(
@@ -46,13 +55,15 @@ async def get_current_user_context(
     Dependency to get current user context with company and permissions
     """
     try:
+        logger.info(f"🔍 CONTEXT DEBUG - Getting context for user: {user_id}, company_id: {x_company_id}")
+        
         # Get user context (with optional company selection)
         user_context = await company_service.get_user_context(user_id, x_company_id)
         
         if not user_context:
             # If user has no company, try to create a personal one
             # This handles the case of new users without companies
-            logger.info(f"User {user_id} has no company, checking for pending invites or creating personal company")
+            logger.error(f"❌ CONTEXT DEBUG - User {user_id} has no company, checking for pending invites or creating personal company")
             
             # For now, raise an error - we'll handle company creation in registration
             raise HTTPException(
@@ -61,17 +72,19 @@ async def get_current_user_context(
             )
         
         if not user_context.is_active:
+            logger.error(f"❌ CONTEXT DEBUG - User {user_id} account disattivato nella company {user_context.company_id}")
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Account disattivato nella company"
             )
         
+        logger.info(f"✅ CONTEXT DEBUG - Context retrieved: user={user_id}, company={user_context.company_id}, role={user_context.role}")
         return user_context
         
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Error getting user context for user {user_id}: {e}")
+        logger.error(f"❌ CONTEXT DEBUG - Error getting user context for user {user_id}: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Errore interno del server"

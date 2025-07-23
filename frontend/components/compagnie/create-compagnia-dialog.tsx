@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -46,10 +47,7 @@ export function CreateCompagniaDialog({ onSuccess }: CreateCompagniaDialogProps)
         })
       })
       
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nella creazione")
-      }
+      
       
       toast({
         title: "Successo",

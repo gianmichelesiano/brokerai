@@ -1,4 +1,5 @@
 "use client"
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -81,13 +82,12 @@ export function ViewCompagniaDialog({ compagnia, isOpen, onClose }: ViewCompagni
 
     try {
       setIsLoadingFiles(true)
-      const response = await fetch(`${API_BASE_URL}/${compagnia.id}/files`)
+      const response = await apiGet(`${API_BASE_URL}/${compagnia.id}/files`)
       
-      if (!response.ok) {
-        throw new Error("Errore nel caricamento dei file")
-      }
       
-      const data = await response.json()
+      
+      // response già contiene i dati JSON
+const data = response
       setFiles(data.files || [])
     } catch (error) {
       toast({
@@ -106,13 +106,9 @@ export function ViewCompagniaDialog({ compagnia, isOpen, onClose }: ViewCompagni
     try {
       setDeletingFileId(relazioneId)
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia/${relazioneId}`, {
-        method: 'DELETE',
-      })
+      const response = await apiDelete(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia/${relazioneId}`)
       
-      if (!response.ok) {
-        throw new Error("Errore nell'eliminazione del file")
-      }
+      
       
       // Remove the file from the local state
       setFiles(prevFiles => prevFiles.filter(file => file.relazione_id !== relazioneId))

@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
@@ -65,10 +66,7 @@ export function EditCompagniaDialog({ compagnia, isOpen, onClose, onSuccess }: E
         })
       })
       
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nell'aggiornamento")
-      }
+      
       
       toast({
         title: "Successo",

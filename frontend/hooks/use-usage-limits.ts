@@ -1,3 +1,4 @@
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 "use client";
 
 import { useState, useEffect } from 'react';
@@ -74,7 +75,7 @@ export function useUsageLimits(): UsageData & {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to fetch usage data');
+        throw new Error(`Failed to fetch usage data: ${response.status}`);
       }
 
       const stats = await response.json();
@@ -108,7 +109,7 @@ export function useUsageLimits(): UsageData & {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to check limits');
+        throw new Error(`Failed to check limits: ${response.status}`);
       }
 
       const result = await response.json();

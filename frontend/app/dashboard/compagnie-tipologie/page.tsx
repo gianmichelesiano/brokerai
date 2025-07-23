@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -63,21 +64,15 @@ export default function CompagnieTipologiePage() {
       setIsLoading(true)
       
       // Load relazioni
-      const relazioniResponse = await fetch(`${API_BASE_URL}?size=100`)
-      if (!relazioniResponse.ok) throw new Error("Errore nel caricamento delle relazioni")
-      const relazioniData = await relazioniResponse.json()
+      const relazioniData = await apiGet<{ items: CompagniaTipologia[] }>(`${API_BASE_URL}?size=100`)
       setRelazioni(relazioniData.items || [])
       
       // Load compagnie
-      const compagnieResponse = await fetch(`${COMPAGNIE_API_URL}?size=100`)
-      if (!compagnieResponse.ok) throw new Error("Errore nel caricamento delle compagnie")
-      const compagnieData = await compagnieResponse.json()
+      const compagnieData = await apiGet<{ items: Compagnia[] }>(`${COMPAGNIE_API_URL}?size=100`)
       setCompagnie(compagnieData.items || [])
       
       // Load tipologie
-      const tipologieResponse = await fetch(`${TIPOLOGIE_API_URL}?size=100`)
-      if (!tipologieResponse.ok) throw new Error("Errore nel caricamento delle tipologie")
-      const tipologieData = await tipologieResponse.json()
+      const tipologieData = await apiGet<{ items: Tipologia[] }>(`${TIPOLOGIE_API_URL}?size=100`)
       setTipologie(tipologieData.items || [])
       
     } catch (error) {

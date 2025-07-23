@@ -1,5 +1,6 @@
 import { Client, CreateClientRequest, UpdateClientRequest, ClientsResponse, ClientFilters } from '@/lib/types/client'
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'
 
 export class ClientsAPI {
@@ -20,7 +21,8 @@ export class ClientsAPI {
       let errorMessage = `Errore ${response.status}: ${response.statusText}`
       
       try {
-        const errorData = await response.json()
+        // response già contiene i dati JSON
+const errorData = response
         if (errorData.detail) {
           errorMessage = errorData.detail
         } else if (errorData.message) {
@@ -116,11 +118,7 @@ export class ClientsAPI {
 
   static async createClient(clientData: CreateClientRequest): Promise<Client> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/clients/flat`, {
-        method: 'POST',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify(clientData),
-      })
+      const response = await apiPost(`${API_BASE_URL}/api/v1/clients/flat`, clientData)
 
       return await this.handleResponse(response, 'creazione del cliente')
     } catch (error) {
@@ -133,11 +131,7 @@ export class ClientsAPI {
 
   static async updateClient(id: string, clientData: Partial<CreateClientRequest>): Promise<Client> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/clients/flat/${id}`, {
-        method: 'PUT',
-        headers: await this.getAuthHeaders(),
-        body: JSON.stringify(clientData),
-      })
+      const response = await apiPut(`${API_BASE_URL}/api/v1/clients/flat/${id}`, clientData)
 
       const result = await this.handleResponse(response, 'aggiornamento del cliente')
       return result.client || result
@@ -151,10 +145,7 @@ export class ClientsAPI {
 
   static async deleteClient(id: string): Promise<void> {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/v1/clients/${id}`, {
-        method: 'DELETE',
-        headers: await this.getAuthHeaders(),
-      })
+      const response = await apiDelete(`${API_BASE_URL}/api/v1/clients/${id}`)
 
       await this.handleResponse(response, 'eliminazione del cliente')
     } catch (error) {

@@ -40,10 +40,11 @@ async def compare_companies(
     Confronta polizze per le garanzie specificate
     """
     try:
+        logger.info(f"Received request: compagnia_ids={request.compagnia_ids}, garanzie_ids={request.garanzie_ids}")
         risultati_analisi = []
         
         # Per ogni garanzia richiesta
-        for garanzia_id in request.garanzia_ids:
+        for garanzia_id in request.garanzie_ids:
             
             # Recupera i dati per il confronto
             dati_confronto = await prepara_dati_confronto(
@@ -64,7 +65,7 @@ async def compare_companies(
         if not risultati_analisi:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail="Nessuna garanzia valida trovata per il confronto"
+                detail="Nessuna garanzia valida trovata per il confronto. Assicurati di aver caricato e analizzato documenti per le compagnie e garanzie selezionate."
             )
         
         return ConfrontoResult(risultati_analisi=risultati_analisi)
@@ -97,28 +98,36 @@ async def prepara_dati_confronto(supabase, garanzia_id: int, compagnie_ids: List
         
         # Recupera i testi estratti dall'AI dalla tabella analisi_ai_polizze
         # Esegui una join con la tabella 'compagnie' per ottenere il nome della compagnia
+        logger.info(f"Cercando dati per garanzia_id={garanzia_id}, compagnie_ids={compagnie_ids}")
         result = supabase.table("analisi_ai_polizze").select(
             "ai_testo_estratto, compagnia_id, compagnie(nome)"
         ).eq("garanzia_id", garanzia_id).in_("compagnia_id", compagnie_ids).execute()
         
-        polizze_data = []
+        logger.info(f"Risultato query analisi_ai_polizze: {len(result.data) if result.data else 0} record trovati")
         if result.data:
-            for item in result.data:
+            logger.info(f"Primi 2 record: {result.data[:2]}")
+        
+        polizze_data = []
+        logger.info(f"Analizzando {len(result.data) if result.data else 0} record trovati")
+        if result.data:
+            for i, item in enumerate(result.data):
                 # Assicurati che 'compagnie' e 'nome' siano presenti e che il testo AI sia valido
                 compagnia_nome = item.get('compagnie', {}).get('nome')
                 ai_testo_estratto = item.get('ai_testo_estratto')
                 
+                logger.info(f"Record {i+1}: compagnia_nome='{compagnia_nome}', testo_length={len(ai_testo_estratto) if ai_testo_estratto else 0}")
+                
                 if not compagnia_nome:
-                    logger.debug(f"Skipping item for garanzia {garanzia_id}: Compagnia nome non trovato. Item: {item}")
+                    logger.warning(f"Skipping item for garanzia {garanzia_id}: Compagnia nome non trovato. Item: {item}")
                     continue
                 if not ai_testo_estratto or not ai_testo_estratto.strip():
-                    logger.debug(f"Skipping item for garanzia {garanzia_id}: Testo estratto AI vuoto o nullo per compagnia {compagnia_nome}. Item: {item}")
+                    logger.warning(f"Skipping item for garanzia {garanzia_id}: Testo estratto AI vuoto o nullo per compagnia {compagnia_nome}. Item: {item}")
                     continue
                 if len(ai_testo_estratto) <= 50:
-                    logger.debug(f"Skipping item for garanzia {garanzia_id}: Testo estratto AI troppo corto ({len(ai_testo_estratto)} chars) per compagnia {compagnia_nome}. Item: {item}")
+                    logger.warning(f"Skipping item for garanzia {garanzia_id}: Testo estratto AI troppo corto ({len(ai_testo_estratto)} chars) per compagnia {compagnia_nome}. Item: {item}")
                     continue
                 if 'NON PREVISTA' in ai_testo_estratto.upper():
-                    logger.debug(f"Skipping item for garanzia {garanzia_id}: Testo estratto AI contiene 'NON PREVISTA' per compagnia {compagnia_nome}. Item: {item}")
+                    logger.warning(f"Skipping item for garanzia {garanzia_id}: Testo estratto AI contiene 'NON PREVISTA' per compagnia {compagnia_nome}. Item: {item}")
                     continue
                 
                 polizze_data.append({
@@ -126,9 +135,20 @@ async def prepara_dati_confronto(supabase, garanzia_id: int, compagnie_ids: List
                     'testo': ai_testo_estratto
                 })
         
+        logger.info(f"Polizze valide trovate per garanzia {garanzia_id}: {len(polizze_data)}")
         if len(polizze_data) < 2:
             logger.warning(f"Dati insufficienti per confronto garanzia {garanzia_id}. Trovate {len(polizze_data)} polizze valide (minimo 2 richieste).")
-            return None
+            # Fornisci un messaggio più dettagliato per l'utente
+            if len(polizze_data) == 0:
+                raise HTTPException(
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"Nessun documento analizzato trovato per la garanzia ID {garanzia_id} e le compagnie selezionate. Carica e analizza documenti per queste compagnie prima di effettuare il confronto."
+                )
+            else:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"Solo {len(polizze_data)} documento(s) valido/i trovato/i per la garanzia ID {garanzia_id}. Sono necessari almeno 2 documenti per effettuare un confronto."
+                )
         
         return {
             'nome_garanzia': garanzia.titolo,
@@ -152,7 +172,6 @@ async def salva_confronto(
         # Prepara i dati per l'inserimento
         data_to_insert = confronto.model_dump()
         data_to_insert["utente_id"] = user_context.user_id
-        data_to_insert["company_id"] = user_context.company_id
         data_to_insert["created_at"] = datetime.utcnow().isoformat()
         data_to_insert["updated_at"] = datetime.utcnow().isoformat()
 

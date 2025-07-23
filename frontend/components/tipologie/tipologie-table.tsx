@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -59,16 +60,7 @@ export function TipologieTable({ tipologie, onUpdate, loading = false }: Tipolog
     if (!editingTipologia) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${editingTipologia.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nell'aggiornamento")
-      }
+      await apiPut(`${API_BASE_URL}/${editingTipologia.id}`, formData)
       
       toast({
         title: "Successo",
@@ -93,11 +85,7 @@ export function TipologieTable({ tipologie, onUpdate, loading = false }: Tipolog
     if (!confirm("Sei sicuro di voler eliminare questa tipologia?")) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: "DELETE"
-      })
-      
-      if (!response.ok) throw new Error("Errore nell'eliminazione")
+      await apiDelete(`${API_BASE_URL}/${id}`)
       
       toast({
         title: "Successo",

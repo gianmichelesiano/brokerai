@@ -43,6 +43,22 @@ export function UsageDashboard() {
     );
   }
 
+  // Protezione per usage undefined o mancante
+  if (!usage || typeof usage !== 'object') {
+    return (
+      <Card>
+        <CardHeader>
+          <CardTitle>Piano e Utilizzo</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="text-red-600">
+            Dati di utilizzo non disponibili
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   const getPlanBadge = () => {
     switch (plan_type) {
       case 'free':
@@ -114,19 +130,19 @@ export function UsageDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="font-medium">Analisi Polizze</span>
-                {isLimitReached(usage.analyses_used, limits.monthly_analyses) && (
+                {isLimitReached(usage.analyses_used || 0, limits.monthly_analyses) && (
                   <AlertTriangle className="w-4 h-4 text-red-500" />
                 )}
               </div>
               <span className="text-sm text-gray-600">
-                {usage.analyses_used} / {limits.monthly_analyses === -1 ? '∞' : limits.monthly_analyses}
+                {usage.analyses_used || 0} / {limits.monthly_analyses === -1 ? '∞' : limits.monthly_analyses}
               </span>
             </div>
             <Progress 
-              value={getProgressPercentage(usage.analyses_used, limits.monthly_analyses)}
+              value={getProgressPercentage(usage.analyses_used || 0, limits.monthly_analyses)}
               className="h-2"
             />
-            {isLimitReached(usage.analyses_used, limits.monthly_analyses) && (
+            {isLimitReached(usage.analyses_used || 0, limits.monthly_analyses) && (
               <p className="text-sm text-red-600">
                 Limite mensile raggiunto. Effettua l'upgrade per continuare.
               </p>
@@ -138,19 +154,19 @@ export function UsageDashboard() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <span className="font-medium">Compagnie Attive</span>
-                {isLimitReached(usage.companies_active, limits.max_companies) && (
+                {isLimitReached(usage.companies_active || 0, limits.max_companies) && (
                   <AlertTriangle className="w-4 h-4 text-red-500" />
                 )}
               </div>
               <span className="text-sm text-gray-600">
-                {usage.companies_active} / {limits.max_companies === -1 ? '∞' : limits.max_companies}
+                {usage.companies_active || 0} / {limits.max_companies === -1 ? '∞' : limits.max_companies}
               </span>
             </div>
             <Progress 
-              value={getProgressPercentage(usage.companies_active, limits.max_companies)}
+              value={getProgressPercentage(usage.companies_active || 0, limits.max_companies)}
               className="h-2"
             />
-            {isLimitReached(usage.companies_active, limits.max_companies) && (
+            {isLimitReached(usage.companies_active || 0, limits.max_companies) && (
               <p className="text-sm text-red-600">
                 Limite compagnie raggiunto. Effettua l'upgrade per aggiungerne altre.
               </p>
@@ -166,7 +182,7 @@ export function UsageDashboard() {
                   <CheckCircle className="w-4 h-4 text-green-500" />
                 </div>
                 <span className="text-sm text-gray-600">
-                  {usage.ai_analyses_used} utilizzate
+                  {usage.ai_analyses_used || 0} utilizzate
                 </span>
               </div>
               <Progress value={0} className="h-2" />
@@ -185,7 +201,7 @@ export function UsageDashboard() {
                   <CheckCircle className="w-4 h-4 text-green-500" />
                 </div>
                 <span className="text-sm text-gray-600">
-                  {usage.exports_generated} generati
+                  {usage.exports_generated || 0} generati
                 </span>
               </div>
             </div>

@@ -1,4 +1,6 @@
 "use client"
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
+import { createClient } from "@/lib/supabase"
 
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
@@ -22,6 +24,43 @@ interface TipologiaAssicurazione {
   descrizione?: string
   created_at: string
   updated_at: string
+}
+
+// API Response Types
+interface TipologiaAssicurazioneListResponse {
+  items: TipologiaAssicurazione[]
+  total: number
+  page: number
+  size: number
+  pages: number
+}
+
+interface UploadResponse {
+  success: boolean
+  message: string
+  file_info: {
+    filename: string
+    original_filename: string
+    content_type: string
+    size: number
+    path: string
+    url: string
+  }
+  text_extraction: {
+    success: boolean
+    text_length: number
+    has_text: boolean
+    errors: string[] | null
+  }
+  relation_info: {
+    id: number
+    compagnia_id: number
+    compagnia_nome: string
+    tipologia_assicurazione_id: number
+    tipologia_nome: string
+    created_at: string
+    updated_at: string
+  }
 }
 
 interface UploadFileDialogProps {
@@ -56,13 +95,7 @@ export function UploadFileDialog({ compagnia, isOpen, onClose, onSuccess }: Uplo
   const loadTipologie = async () => {
     try {
       setIsLoadingTipologie(true)
-      const response = await fetch(`${API_BASE_URL}/tipologia-assicurazione/?page=1&size=100&sort_order=desc`)
-      
-      if (!response.ok) {
-        throw new Error("Errore nel caricamento delle tipologie")
-      }
-      
-      const data = await response.json()
+      const data = await apiGet<TipologiaAssicurazioneListResponse>(`${API_BASE_URL}/tipologia-assicurazione/?page=1&size=100&sort_order=desc`)
       setTipologie(data.items || [])
     } catch (error) {
       toast({
@@ -95,17 +128,19 @@ export function UploadFileDialog({ compagnia, isOpen, onClose, onSuccess }: Uplo
       formData.append("tipologia_assicurazione_id", selectedTipologia)
       formData.append("file", selectedFile)
 
+      // For FormData uploads, we need to use the apiClient's post method but handle FormData
+      // We'll modify the headers to not include Content-Type for FormData
+      const authHeaders = await apiClient['getAuthHeaders']()
+      const headers = { ...authHeaders }
+      //delete headers['Content-Type'] // Remove Content-Type to let browser set it with boundary
+
       const response = await fetch(`${API_BASE_URL}/upload/compagnia-tipologia`, {
-        method: "POST",
-        body: formData
+        method: 'POST',
+        body: formData,
+        headers
       })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.detail || "Errore durante l'upload")
-      }
-
-      const result = await response.json()
+      const result: UploadResponse = await apiClient.handleResponse<UploadResponse>(response)
 
       toast({
         title: "Successo",

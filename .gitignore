@@ -220,6 +220,7 @@ dist
 # Temporary folders
 tmp/
 temp/
+test_script/
 
 # Logs
 logs

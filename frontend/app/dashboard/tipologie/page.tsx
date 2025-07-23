@@ -1,5 +1,6 @@
 "use client"
 
+import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api"
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -71,23 +72,14 @@ export default function TipologiePage() {
         params.append("search", search)
       }
 
-      const response = await fetch(`${API_BASE_URL}/?${params}`)
-      if (!response.ok) throw new Error("Errore nel caricamento delle tipologie")
-      
-      const data: TipologiaAssicurazioneList = await response.json()
+      const data: TipologiaAssicurazioneList = await apiGet<TipologiaAssicurazioneList>(`${API_BASE_URL}/?${params}`)
       
       // Fetch garanzie count for each tipologia
       const tipologieWithCount = await Promise.all(
         data.items.map(async (tipologia) => {
           try {
-            const garanzieResponse = await fetch(
-              `${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/by-tipologia/${tipologia.id}?size=1`
-            )
-            if (garanzieResponse.ok) {
-              const garanzieData = await garanzieResponse.json()
-              return { ...tipologia, garanzie_count: garanzieData.garanzie.total }
-            }
-            return { ...tipologia, garanzie_count: 0 }
+            const garanzieData = await apiGet<{ garanzie: { total: number } }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/by-tipologia/${tipologia.id}?size=1`)
+            return { ...tipologia, garanzie_count: garanzieData.garanzie.total }
           } catch {
             return { ...tipologia, garanzie_count: 0 }
           }
@@ -111,10 +103,7 @@ export default function TipologiePage() {
   // Fetch statistics
   const fetchStats = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/stats`)
-      if (!response.ok) throw new Error("Errore nel caricamento delle statistiche")
-      
-      const data: TipologiaStats = await response.json()
+      const data: TipologiaStats = await apiGet<TipologiaStats>(`${API_BASE_URL}/stats`)
       setStats(data)
     } catch (error) {
       console.error("Errore nel caricamento delle statistiche:", error)
@@ -124,16 +113,7 @@ export default function TipologiePage() {
   // Create tipologia
   const createTipologia = async () => {
     try {
-      const response = await fetch(API_BASE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nella creazione")
-      }
+      await apiPost(API_BASE_URL, formData)
       
       toast({
         title: "Successo",
@@ -158,16 +138,7 @@ export default function TipologiePage() {
     if (!editingTipologia) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${editingTipologia.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nell'aggiornamento")
-      }
+      await apiPut(`${API_BASE_URL}/${editingTipologia.id}`, formData)
       
       toast({
         title: "Successo",
@@ -193,11 +164,7 @@ export default function TipologiePage() {
     if (!confirm("Sei sicuro di voler eliminare questa tipologia?")) return
     
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`, {
-        method: "DELETE"
-      })
-      
-      if (!response.ok) throw new Error("Errore nell'eliminazione")
+      await apiDelete(`${API_BASE_URL}/${id}`)
       
       toast({
         title: "Successo",
@@ -242,21 +209,10 @@ export default function TipologiePage() {
     try {
       setGeneratingGaranzie(tipologiaId)
       
-      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/genera/${tipologiaId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          custom_requirements: null,
-          save_duplicates: false
-        })
+      const result = await apiPost<{ saved_to_database: number }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/genera/${tipologiaId}`, {
+        custom_requirements: null,
+        save_duplicates: false
       })
-      
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.detail || "Errore nella generazione delle garanzie")
-      }
-      
-      const result = await response.json()
       
       toast({
         title: "Successo",

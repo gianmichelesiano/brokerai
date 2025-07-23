@@ -2,7 +2,7 @@
 API router for Compagnie (Insurance Companies) endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status
+from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File, status, Header
 from typing import List, Optional
 import logging
 
@@ -61,6 +61,86 @@ async def health_check(supabase=Depends(get_supabase)):
             "error": str(e),
             "message": "Errore di connessione al database"
         }
+
+
+@router.get("/debug-auth")
+async def debug_auth(
+    authorization: str = Header(None),
+    supabase=Depends(get_supabase)
+):
+    """
+    Endpoint di debug per testare l'autenticazione senza richiedere company context
+    """
+    from app.services.auth_service import get_auth_service
+    from app.services.company_service import get_company_service
+    
+    debug_info = {
+        "step": "start",
+        "authorization_header": authorization[:50] if authorization else None,
+        "errors": [],
+        "success_steps": []
+    }
+    
+    try:
+        # Step 1: Check authorization header
+        if not authorization or not authorization.startswith("Bearer "):
+            debug_info["errors"].append("Authorization header mancante o formato errato")
+            debug_info["step"] = "authorization_check_failed"
+            return debug_info
+        
+        debug_info["success_steps"].append("authorization_header_valid")
+        
+        # Step 2: Extract token
+        access_token = authorization.split(" ")[1]
+        debug_info["token_preview"] = access_token[:20] + "..."
+        debug_info["success_steps"].append("token_extracted")
+        
+        # Step 3: Validate token with auth service
+        auth_service = get_auth_service()
+        result = await auth_service.get_current_user(access_token)
+        
+        if not result["success"]:
+            debug_info["errors"].append(f"Token validation failed: {result['error']}")
+            debug_info["step"] = "token_validation_failed"
+            debug_info["auth_service_response"] = result
+            return debug_info
+        
+        debug_info["success_steps"].append("token_validated")
+        debug_info["user_id"] = result["user"]["id"]
+        debug_info["user_email"] = result["user"].get("email")
+        
+        # Step 4: Get user context
+        company_service = get_company_service()
+        user_context = await company_service.get_user_context(result["user"]["id"])
+        
+        if not user_context:
+            debug_info["errors"].append("User context not found - no company association")
+            debug_info["step"] = "user_context_failed"
+            return debug_info
+        
+        debug_info["success_steps"].append("user_context_retrieved")
+        debug_info["company_id"] = user_context.company_id
+        debug_info["company_name"] = user_context.company_name
+        debug_info["user_role"] = user_context.role.value
+        debug_info["is_active"] = user_context.is_active
+        
+        # Step 5: Test database query with company filter
+        compagnie_result = supabase.table("compagnie").select("id, nome").eq("company_id", user_context.company_id).limit(5).execute()
+        debug_info["success_steps"].append("database_query_executed")
+        debug_info["compagnie_count"] = len(compagnie_result.data)
+        debug_info["sample_compagnie"] = compagnie_result.data
+        
+        debug_info["step"] = "complete_success"
+        debug_info["message"] = "Autenticazione completata con successo!"
+        
+        return debug_info
+        
+    except Exception as e:
+        debug_info["errors"].append(f"Unexpected error: {str(e)}")
+        debug_info["step"] = "unexpected_error"
+        debug_info["exception"] = str(e)
+        logger.error(f"Debug auth error: {e}")
+        return debug_info
 
 
 @router.get("/", response_model=CompagniaList)
