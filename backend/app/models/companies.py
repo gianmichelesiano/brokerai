@@ -24,9 +24,12 @@ class CompanyBase(BaseModel):
     is_active: bool = True
 
 
-class CompanyCreate(CompanyBase):
+class CompanyCreate(BaseModel):
     """Company creation model"""
-    pass
+    name: str = Field(..., min_length=1, max_length=255)
+    slug: Optional[str] = Field(None, min_length=1, max_length=100)
+    description: Optional[str] = None
+    is_active: bool = True
 
 
 class CompanyUpdate(BaseModel):
@@ -52,6 +55,13 @@ class CompanyWithStats(Company):
     owner_count: int = 0
     admin_count: int = 0
     total_users: int = 0
+
+
+class CompanyWithUserRole(Company):
+    """Company model with user's role information"""
+    user_role: UserRole
+    joined_at: datetime
+    is_user_active: bool = True
 
 
 # User Company Models

@@ -6,6 +6,7 @@ Sistema di Confronto Garanzie Assicurative
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 import uvicorn
 import logging
 from contextlib import asynccontextmanager
@@ -49,8 +50,50 @@ app = FastAPI(
     version="1.0.0",
     docs_url="/docs" if settings.DEBUG else None,
     redoc_url="/redoc" if settings.DEBUG else None,
-    lifespan=lifespan
+    lifespan=lifespan,
+    # Add security scheme for Swagger UI
+    openapi_tags=[
+        {
+            "name": "Authentication",
+            "description": "Authentication endpoints"
+        },
+        {
+            "name": "Companies",
+            "description": "Companies management endpoints"
+        }
+    ]
 )
+
+# Add security scheme for Bearer token in Swagger
+from fastapi.openapi.utils import get_openapi
+
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+    openapi_schema = get_openapi(
+        title="Policy Comparator API",
+        version="1.0.0",
+        description="Sistema di Confronto Garanzie Assicurative - Backend API",
+        routes=app.routes,
+    )
+    openapi_schema["components"]["securitySchemes"] = {
+        "BearerAuth": {
+            "type": "http",
+            "scheme": "bearer",
+            "bearerFormat": "JWT",
+            "description": "Enter your JWT token (without 'Bearer ' prefix)"
+        }
+    }
+    # Apply security to all endpoints by default
+    for path in openapi_schema["paths"]:
+        for method in openapi_schema["paths"][path]:
+            if method != "options":  # Skip OPTIONS requests
+                openapi_schema["paths"][path][method]["security"] = [{"BearerAuth": []}]
+    
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 # CORS middleware
 app.add_middleware(

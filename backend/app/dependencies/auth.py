@@ -285,3 +285,54 @@ def get_permission_checker(
     Dependency to get permission checker
     """
     return PermissionChecker(user_context)
+
+
+async def require_super_admin(
+    user_id: str = Depends(get_current_user_id),
+    company_service: CompanyService = Depends(get_company_service)
+) -> str:
+    """
+    Dependency that requires super admin privileges (owner role in any company)
+    """
+    try:
+        is_super_admin = await company_service.is_user_super_admin(user_id)
+        if not is_super_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accesso riservato ai super amministratori"
+            )
+        return user_id
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking super admin status for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Errore interno del server"
+        )
+
+
+async def require_company_owner(
+    company_id: str,
+    user_id: str = Depends(get_current_user_id),
+    company_service: CompanyService = Depends(get_company_service)
+) -> str:
+    """
+    Dependency that requires ownership of a specific company
+    """
+    try:
+        is_owner = await company_service.is_user_company_owner(user_id, company_id)
+        if not is_owner:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accesso riservato al proprietario della company"
+            )
+        return user_id
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error checking company owner status for user {user_id}, company {company_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Errore interno del server"
+        )

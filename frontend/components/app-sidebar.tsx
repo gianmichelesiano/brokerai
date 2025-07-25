@@ -26,6 +26,19 @@ const mainMenuItems = [
   },
 ]
 
+const adminMenuItems = [
+  {
+    title: "Users",
+    url: "/dashboard/users",
+    icon: Users,
+  },
+  {
+    title: "Company",
+    url: "/dashboard/company",
+    icon: Building2,
+  },
+]
+
 const polizzeMenuItems = [
   {
     title: "Rami",
@@ -56,6 +69,8 @@ const businessMenuItems = [
     icon: Users,
   },
 ]
+
+
 
 const toolsMenuItems = [
   {
@@ -141,7 +156,27 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
+        {/* Admin */}
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-slate-400 text-xs font-medium px-3 py-1">Admin</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {adminMenuItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton
+                    asChild
+                    className="text-slate-300 hover:bg-slate-800 hover:text-white data-[active=true]:bg-slate-700 data-[active=true]:text-white h-7 px-3"
+                  >
+                    <Link href={item.url}>
+                      <item.icon className="h-4 w-4" />
+                      <span className="text-sm">{item.title}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
         {/* Polizze */}
         <SidebarGroup>
           <SidebarGroupLabel className="text-slate-400 text-xs font-medium px-3 py-1">Polizze</SidebarGroupLabel>
@@ -185,6 +220,8 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+
 
         {/* Strumenti */}
         <SidebarGroup>

@@ -12,7 +12,7 @@ from app.config.database import get_supabase, get_supabase_service
 from app.models.companies import (
     Company, CompanyCreate, CompanyUpdate, UserCompany, UserCompanyCreate,
     CompanyInvite, CompanyInviteCreate, UserRole, UserPermissions, UserContext,
-    CompanyMemberList, UserCompanyWithDetails
+    CompanyMemberList, UserCompanyWithDetails, CompanyList, CompanyWithUserRole
 )
 
 logger = logging.getLogger(__name__)
@@ -403,6 +403,166 @@ class CompanyService:
         except Exception as e:
             logger.error(f"Error generating unique slug for {base_slug}: {e}")
             return f"{base_slug}-{secrets.token_hex(4)}"
+    
+    async def list_all_companies(
+        self, 
+        page: int = 1, 
+        size: int = 10, 
+        search: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        created_after: Optional[datetime] = None
+    ) -> CompanyList:
+        """List all companies with filters and pagination (for super admin)"""
+        try:
+            # Build query
+            query = self.supabase.table("companies").select("*", count="exact")
+            
+            # Apply filters
+            if search:
+                query = query.ilike("name", f"%{search}%")
+            
+            if is_active is not None:
+                query = query.eq("is_active", is_active)
+            
+            if created_after:
+                query = query.gte("created_at", created_after.isoformat())
+            
+            # Get total count
+            count_result = query.execute()
+            total = count_result.count or 0
+            
+            # Apply pagination and ordering
+            offset = (page - 1) * size
+            companies_result = query.order("created_at", desc=True).range(offset, offset + size - 1).execute()
+            
+            # Convert to Company models
+            companies = [Company(**company_data) for company_data in companies_result.data]
+            
+            pages = (total + size - 1) // size if total > 0 else 0
+            
+            return CompanyList(
+                items=companies,
+                total=total,
+                page=page,
+                size=size,
+                pages=pages
+            )
+            
+        except Exception as e:
+            logger.error(f"Error listing all companies: {e}")
+            return CompanyList(items=[], total=0, page=page, size=size, pages=0)
+    
+    async def update_company(self, company_id: str, company_data: CompanyUpdate) -> Optional[Company]:
+        """Update a company"""
+        try:
+            # Prepare update data
+            update_data = {}
+            
+            if company_data.name is not None:
+                # Check if name is already taken by another company
+                existing = self.supabase.table("companies").select("id").eq("name", company_data.name).neq("id", company_id).execute()
+                if existing.data:
+                    raise ValueError(f"Company with name '{company_data.name}' already exists")
+                update_data["name"] = company_data.name
+            
+            if company_data.description is not None:
+                update_data["description"] = company_data.description
+            
+            if company_data.is_active is not None:
+                update_data["is_active"] = company_data.is_active
+            
+            if not update_data:
+                # No changes to make, return current company
+                company_result = self.supabase.table("companies").select("*").eq("id", company_id).execute()
+                if company_result.data:
+                    return Company(**company_result.data[0])
+                return None
+            
+            # Add timestamp
+            update_data["updated_at"] = datetime.utcnow().isoformat()
+            
+            # Update company
+            result = self.supabase.table("companies").update(update_data).eq("id", company_id).execute()
+            
+            if not result.data:
+                return None
+            
+            return Company(**result.data[0])
+            
+        except Exception as e:
+            logger.error(f"Error updating company {company_id}: {e}")
+            return None
+    
+    async def soft_delete_company(self, company_id: str) -> bool:
+        """Soft delete a company (set is_active = false)"""
+        try:
+            # Check if there are other active users in the company
+            active_users = self.supabase.table("user_companies").select("*", count="exact").eq("company_id", company_id).eq("is_active", True).execute()
+            
+            if (active_users.count or 0) > 1:
+                raise ValueError("Cannot delete company with active members. Remove all members first.")
+            
+            # Soft delete the company
+            result = self.supabase.table("companies").update({
+                "is_active": False,
+                "updated_at": datetime.utcnow().isoformat()
+            }).eq("id", company_id).execute()
+            
+            return bool(result.data)
+            
+        except Exception as e:
+            logger.error(f"Error soft deleting company {company_id}: {e}")
+            return False
+    
+    async def get_user_companies(self, user_id: str) -> List[CompanyWithUserRole]:
+        """Get all companies for a user with their role"""
+        try:
+            # Get user-company relationships with company details
+            user_companies_result = self.supabase.table("user_companies").select(
+                "*, companies(*)"
+            ).eq("user_id", user_id).eq("is_active", True).order("joined_at").execute()
+            
+            companies = []
+            for uc_data in user_companies_result.data:
+                company_data = uc_data["companies"]
+                if company_data and company_data.get("is_active", True):  # Only include active companies
+                    company = CompanyWithUserRole(
+                        id=company_data["id"],
+                        name=company_data["name"],
+                        slug=company_data["slug"],
+                        description=company_data.get("description"),
+                        is_active=company_data.get("is_active", True),
+                        created_at=datetime.fromisoformat(company_data["created_at"]),
+                        updated_at=datetime.fromisoformat(company_data["updated_at"]),
+                        user_role=UserRole(uc_data["role"]),
+                        joined_at=datetime.fromisoformat(uc_data["joined_at"]),
+                        is_user_active=uc_data["is_active"]
+                    )
+                    companies.append(company)
+            
+            return companies
+            
+        except Exception as e:
+            logger.error(f"Error getting user companies for {user_id}: {e}")
+            return []
+    
+    async def is_user_super_admin(self, user_id: str) -> bool:
+        """Check if user is a super admin (has owner role in any company)"""
+        try:
+            owner_result = self.supabase.table("user_companies").select("id").eq("user_id", user_id).eq("role", "owner").eq("is_active", True).limit(1).execute()
+            return bool(owner_result.data)
+        except Exception as e:
+            logger.error(f"Error checking super admin status for user {user_id}: {e}")
+            return False
+    
+    async def is_user_company_owner(self, user_id: str, company_id: str) -> bool:
+        """Check if user is owner of specific company"""
+        try:
+            owner_result = self.supabase.table("user_companies").select("id").eq("user_id", user_id).eq("company_id", company_id).eq("role", "owner").eq("is_active", True).limit(1).execute()
+            return bool(owner_result.data)
+        except Exception as e:
+            logger.error(f"Error checking company owner status for user {user_id}, company {company_id}: {e}")
+            return False
 
 
 # Global company service instance

@@ -2,19 +2,21 @@
 API router for Companies management endpoints
 """
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, Path
 from typing import List, Optional
+from datetime import datetime
 import logging
 
 from app.models.companies import (
-    Company, CompanyCreate, CompanyUpdate, CompanyList,
+    Company, CompanyCreate, CompanyUpdate, CompanyList, CompanyWithUserRole,
     CompanyInvite, CompanyInviteCreate, CompanyInviteAccept,
     CompanyMemberList, UserContext, UserRole
 )
 from app.services.company_service import get_company_service, CompanyService
 from app.dependencies.auth import (
     get_current_user_context, require_owner_role, require_member_management,
-    get_user_company_filter, add_company_id_to_data
+    get_user_company_filter, add_company_id_to_data, require_super_admin,
+    require_company_owner, get_current_user_id
 )
 
 logger = logging.getLogger(__name__)
@@ -42,6 +44,187 @@ async def health_check():
             "message": "Companies service error"
         }
 
+
+# NEW ENDPOINTS
+
+@router.get("/", response_model=CompanyList)
+async def list_all_companies(
+    page: int = Query(1, ge=1, description="Numero pagina"),
+    size: int = Query(10, ge=1, le=100, description="Dimensione pagina"),
+    search: Optional[str] = Query(None, description="Ricerca per nome"),
+    is_active: Optional[bool] = Query(None, description="Filtra per stato attivo"),
+    created_after: Optional[datetime] = Query(None, description="Filtra per data creazione"),
+    user_id: str = Depends(require_super_admin),
+    company_service: CompanyService = Depends(get_company_service)
+):
+    """
+    Lista tutte le aziende (per super admin)
+    """
+    try:
+        companies = await company_service.list_all_companies(
+            page=page,
+            size=size,
+            search=search,
+            is_active=is_active,
+            created_after=created_after
+        )
+        
+        return companies
+        
+    except Exception as e:
+        logger.error(f"Error listing all companies: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Errore interno del server: {str(e)}"
+        )
+
+
+@router.post("/", response_model=Company)
+async def create_company(
+    company_data: CompanyCreate,
+    user_id: str = Depends(get_current_user_id),
+    company_service: CompanyService = Depends(get_company_service)
+):
+    """
+    Crea nuova azienda
+    """
+    try:
+        # Generate slug if not provided
+        if not company_data.slug:
+            base_slug = company_data.name.lower().replace(' ', '-').replace('_', '-')
+            company_data.slug = await company_service.generate_unique_slug(base_slug)
+        
+        # Create company
+        company = await company_service.create_company(company_data, user_id)
+        
+        if not company:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Errore nella creazione della company"
+            )
+        
+        return company
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error creating company: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Errore interno del server: {str(e)}"
+        )
+
+
+@router.put("/{company_id}", response_model=Company)
+async def update_company(
+    company_id: str = Path(..., description="ID della company"),
+    company_data: CompanyUpdate = ...,
+    user_id: str = Depends(get_current_user_id),
+    company_service: CompanyService = Depends(get_company_service)
+):
+    """
+    Aggiorna azienda specifica (solo owner)
+    """
+    try:
+        # Validate ownership
+        is_owner = await company_service.is_user_company_owner(user_id, company_id)
+        if not is_owner:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accesso riservato al proprietario della company"
+            )
+        
+        # Update company
+        updated_company = await company_service.update_company(company_id, company_data)
+        
+        if not updated_company:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Company non trovata"
+            )
+        
+        return updated_company
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error updating company {company_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Errore interno del server: {str(e)}"
+        )
+
+
+@router.delete("/{company_id}")
+async def delete_company(
+    company_id: str = Path(..., description="ID della company"),
+    user_id: str = Depends(get_current_user_id),
+    company_service: CompanyService = Depends(get_company_service)
+):
+    """
+    Elimina azienda (soft delete, solo owner)
+    """
+    try:
+        # Validate ownership
+        is_owner = await company_service.is_user_company_owner(user_id, company_id)
+        if not is_owner:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Accesso riservato al proprietario della company"
+            )
+        
+        # Soft delete company
+        success = await company_service.soft_delete_company(company_id)
+        
+        if not success:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Company non trovata"
+            )
+        
+        return {"message": "Company eliminata con successo"}
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+    except Exception as e:
+        logger.error(f"Error deleting company {company_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Errore interno del server: {str(e)}"
+        )
+
+
+@router.get("/users/me/companies", response_model=List[CompanyWithUserRole])
+async def get_my_companies(
+    user_id: str = Depends(get_current_user_id),
+    company_service: CompanyService = Depends(get_company_service)
+):
+    """
+    Lista aziende dell'utente corrente
+    """
+    try:
+        companies = await company_service.get_user_companies(user_id)
+        return companies
+        
+    except Exception as e:
+        logger.error(f"Error getting user companies for {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Errore interno del server: {str(e)}"
+        )
+
+
+# EXISTING ENDPOINTS (updated)
 
 @router.get("/me", response_model=Company)
 async def get_my_company(
@@ -84,46 +267,24 @@ async def update_my_company(
     Update current user's company (OWNER only)
     """
     try:
-        # Prepare update data
-        update_data = {}
-        if company_data.name is not None:
-            # Check if name is already taken by another company
-            existing = company_service.supabase.table("companies").select("id").eq("name", company_data.name).neq("id", user_context.company_id).execute()
-            if existing.data:
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail=f"Esiste già una company con il nome '{company_data.name}'"
-                )
-            update_data["name"] = company_data.name
+        # Update company using the service
+        updated_company = await company_service.update_company(user_context.company_id, company_data)
         
-        if company_data.description is not None:
-            update_data["description"] = company_data.description
-        
-        if company_data.is_active is not None:
-            update_data["is_active"] = company_data.is_active
-        
-        if not update_data:
-            # No changes to make
-            company_result = company_service.supabase.table("companies").select("*").eq("id", user_context.company_id).execute()
-            return Company(**company_result.data[0])
-        
-        # Add timestamp
-        from datetime import datetime
-        update_data["updated_at"] = datetime.utcnow().isoformat()
-        
-        # Update company
-        result = company_service.supabase.table("companies").update(update_data).eq("id", user_context.company_id).execute()
-        
-        if not result.data:
+        if not updated_company:
             raise HTTPException(
-                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Errore nell'aggiornamento della company"
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Company non trovata"
             )
         
-        return Company(**result.data[0])
+        return updated_company
         
     except HTTPException:
         raise
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
     except Exception as e:
         logger.error(f"Error updating company {user_context.company_id}: {e}")
         raise HTTPException(
@@ -359,7 +520,6 @@ async def update_member_role(
                 )
         
         # Update role
-        from datetime import datetime
         company_service.supabase.table("user_companies").update({
             "role": new_role.value,
             "updated_at": datetime.utcnow().isoformat()
@@ -417,7 +577,6 @@ async def remove_member(
                 )
         
         # Remove member (soft delete)
-        from datetime import datetime
         company_service.supabase.table("user_companies").update({
             "is_active": False,
             "updated_at": datetime.utcnow().isoformat()
@@ -492,7 +651,6 @@ async def get_invite_details(
         invited_by_metadata = invited_by_user.get("user_metadata", {})
         
         # Check if expired
-        from datetime import datetime
         expires_at = datetime.fromisoformat(invite["expires_at"])
         is_expired = datetime.utcnow() > expires_at
         
