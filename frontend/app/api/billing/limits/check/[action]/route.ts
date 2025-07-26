@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { action: string } }
+  { params }: { params: Promise<{ action: string }> }
 ) {
   try {
     const userId = request.headers.get('x-user-id');
@@ -14,7 +14,7 @@ export async function GET(
       );
     }
 
-    const { action } = params;
+    const { action } = await params;
 
     // Forward request to backend
     const backendUrl = process.env.BACKEND_URL || 'http://localhost:8000';

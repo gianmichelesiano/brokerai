@@ -44,8 +44,8 @@ export function useBrokerProfile() {
         throw new Error('Errore nel caricamento del profilo')
       }
 
-      // response già contiene i dati JSON
-const data = response
+      // Parse response JSON
+      const data = await response.json()
       if (data.success && data.broker) {
         setProfile(data.broker)
         return { success: true, profile: data.broker }
@@ -80,8 +80,8 @@ const data = response
 
       
 
-      // response già contiene i dati JSON
-const data = response
+      // Parse response JSON
+      const data = await response.json()
       if (data.success && data.broker) {
         setProfile(data.broker)
         toast({
@@ -120,8 +120,8 @@ const data = response
 
       
 
-      // response già contiene i dati JSON
-const data = response
+      // Parse response JSON
+      const data = await response.json()
       if (data.success && data.broker) {
         setProfile(data.broker)
         toast({

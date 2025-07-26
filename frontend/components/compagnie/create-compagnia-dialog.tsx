@@ -39,15 +39,9 @@ export function CreateCompagniaDialog({ onSuccess }: CreateCompagniaDialogProps)
 
     try {
       setIsLoading(true)
-      const response = await fetch(API_BASE_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          nome: formData.nome.trim()
-        })
+      await apiPost(API_BASE_URL, {
+        nome: formData.nome.trim()
       })
-      
-      
       
       toast({
         title: "Successo",

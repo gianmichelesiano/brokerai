@@ -309,7 +309,7 @@ export default function GaranziePage() {
                 onClick={goBackToTipologie}
               >
                 <ArrowLeft className="h-4 w-4 mr-1" />
-                Tipologie
+                Rami
               </Button>
             )}
             <h1 className="text-3xl font-bold tracking-tight">

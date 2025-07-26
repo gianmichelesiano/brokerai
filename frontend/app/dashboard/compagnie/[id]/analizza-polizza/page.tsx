@@ -8,12 +8,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbList, BreadcrumbPage, BreadcrumbSeparator } from "@/components/ui/breadcrumb"
-import { ArrowLeft, Building, FileText, Tag, Calendar, CheckCircle, XCircle, AlertCircle, RefreshCw, ChevronDown, ChevronRight, Shield, Loader2, Search, X, Brain, Eye, Edit, Save, XCircle as Cancel } from "lucide-react"
+import { ArrowLeft, Building, FileText, Tag, Calendar, CheckCircle, XCircle, AlertCircle, RefreshCw, ChevronDown, ChevronRight, Shield, Loader2, Search, X, Brain, Eye, Edit, Save, XCircle as Cancel, Clock, TrendingUp } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { useUsageLimits } from "@/hooks/use-usage-limits"
 import { LimitReachedActions } from "@/components/billing/limit-reached-actions"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { Progress } from "@/components/ui/progress"
 
 interface Garanzia {
   id: number
@@ -97,6 +98,7 @@ export default function AnalizzaPolizzaPage() {
   const [isSavingAiText, setIsSavingAiText] = useState(false)
   const [isCheckingAnalyses, setIsCheckingAnalyses] = useState<Set<number>>(new Set())
   const [analyzingAllGaranzie, setAnalyzingAllGaranzie] = useState<Set<number>>(new Set())
+  const [batchProgress, setBatchProgress] = useState<Map<number, {completed: number, total: number, errors: number, startTime: number}>>(new Map())
   const [showLimitActions, setShowLimitActions] = useState<{
     show: boolean;
     limitType?: 'analyses' | 'ai_analyses' | 'exports' | 'companies';
@@ -390,6 +392,16 @@ export default function AnalizzaPolizzaPage() {
     try {
       setAnalyzingAllGaranzie(prev => new Set(prev).add(tipologiaId))
       
+      // Initialize progress tracking
+      const initialProgress = {
+        completed: 0,
+        total: garanzieToAnalyze.length,
+        errors: 0,
+        startTime: Date.now()
+      }
+      console.log(`📊 Initializing progress tracking for tipologia ${tipologiaId}:`, initialProgress)
+      setBatchProgress(prev => new Map(prev).set(tipologiaId, initialProgress))
+      
       // Check billing limits before starting bulk analysis
       const canAnalyze = await checkLimitWithNotification('analysis', `analisi di ${garanzieToAnalyze.length} garanzie`);
       if (!canAnalyze) {
@@ -398,45 +410,108 @@ export default function AnalizzaPolizzaPage() {
           newSet.delete(tipologiaId)
           return newSet
         })
+        setBatchProgress(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(tipologiaId)
+          return newMap
+        })
         return;
       }
 
-      let successCount = 0
-      let errorCount = 0
-
-      // Process garanzie sequentially to avoid overwhelming the system
-      for (const garanzia of garanzieToAnalyze) {
+      // Process garanzie in parallel with controlled concurrency
+      const processGaranzia = async (garanzia: Garanzia) => {
+        const requestStart = Date.now()
+        console.log(`📡 Starting analysis for garanzia ${garanzia.id} (${garanzia.titolo})`)
         try {
-          const response = await fetch(`${COMPAGNIE_API_URL}/analizza-polizza`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              compagnia_id: parseInt(compagniaId),
-              garanzia_id: garanzia.id
-            })
+          // Use apiPost instead of raw fetch to ensure proper auth headers
+          const responseData = await apiPost(`${COMPAGNIE_API_URL}/analizza-polizza`, {
+            compagnia_id: parseInt(compagniaId),
+            garanzia_id: garanzia.id
           })
-
-          if (response.ok) {
-            successCount++
-            // Update existing analyses state
-            setExistingAnalyses(prev => new Map(prev).set(garanzia.id, true))
-            
-            // Increment usage for each successful analysis
-            try {
-              await incrementUsage('analyses')
-            } catch (error) {
-              console.error('Errore nell\'incremento utilizzo:', error)
-            }
-          } else {
-            errorCount++
+          
+          console.log(`✅ API Response for garanzia ${garanzia.id}:`, responseData)
+          
+          // Update existing analyses state
+          setExistingAnalyses(prev => new Map(prev).set(garanzia.id, true))
+          
+          // Increment usage for each successful analysis
+          try {
+            await incrementUsage('analyses')
+          } catch (error) {
+            console.error('Errore nell\'incremento utilizzo:', error)
           }
+          
+          // Update progress - success (force re-render with new object)
+          setBatchProgress(prev => {
+            const current = prev.get(tipologiaId)
+            if (current) {
+              const updated = {
+                ...current,
+                completed: current.completed + 1
+              }
+              console.log(`📊 Progress updated for tipologia ${tipologiaId}: ${updated.completed}/${updated.total}`)
+              // Create completely new Map to trigger React re-render
+              const newMap = new Map()
+              for (let [key, value] of prev) {
+                if (key === tipologiaId) {
+                  newMap.set(key, updated)
+                } else {
+                  newMap.set(key, value)
+                }
+              }
+              return newMap
+            } else {
+              console.warn(`⚠️ No progress tracker found for tipologia ${tipologiaId}`)
+              return prev
+            }
+          })
+          
+          const requestEnd = Date.now()
+          console.log(`✅ Completed analysis for garanzia ${garanzia.id} in ${(requestEnd - requestStart) / 1000}s`)
+          return { success: true, garanziaId: garanzia.id, data: responseData }
         } catch (error) {
-          console.error(`Errore nell'analisi della garanzia ${garanzia.id}:`, error)
-          errorCount++
+          console.error(`❌ Error in analysis for garanzia ${garanzia.id}:`, error)
+          
+          // Update progress - error (force re-render with new object)
+          setBatchProgress(prev => {
+            const current = prev.get(tipologiaId)
+            if (current) {
+              const updated = {
+                ...current,
+                completed: current.completed + 1,
+                errors: current.errors + 1
+              }
+              console.log(`📊 Progress updated (error) for tipologia ${tipologiaId}: ${updated.completed}/${updated.total}, errors: ${updated.errors}`)
+              // Create completely new Map to trigger React re-render
+              const newMap = new Map()
+              for (let [key, value] of prev) {
+                if (key === tipologiaId) {
+                  newMap.set(key, updated)
+                } else {
+                  newMap.set(key, value)
+                }
+              }
+              return newMap
+            }
+            return prev
+          })
+          
+          const requestEnd = Date.now()
+          console.log(`❌ Failed analysis for garanzia ${garanzia.id} in ${(requestEnd - requestStart) / 1000}s`)
+          return { success: false, garanziaId: garanzia.id}
         }
       }
+
+      // Process all garanzie in parallel (truly parallel execution)
+      console.log(`🚀 Starting parallel analysis of ${garanzieToAnalyze.length} garanzie for tipologia ${tipologiaId}`)
+      const startTime = Date.now()
+      const results = await Promise.all(garanzieToAnalyze.map(processGaranzia))
+      const endTime = Date.now()
+      console.log(`✅ Parallel analysis completed in ${(endTime - startTime) / 1000}s for tipologia ${tipologiaId}`)
+      
+      // Count results
+      const successCount = results.filter(r => r.success).length
+      const errorCount = results.filter(r => !r.success).length
 
       // Show results
       if (successCount > 0) {
@@ -466,6 +541,14 @@ export default function AnalizzaPolizzaPage() {
         newSet.delete(tipologiaId)
         return newSet
       })
+      // Clean up progress after a delay to show final state
+      setTimeout(() => {
+        setBatchProgress(prev => {
+          const newMap = new Map(prev)
+          newMap.delete(tipologiaId)
+          return newMap
+        })
+      }, 3000)
     }
   }
 
@@ -697,7 +780,7 @@ export default function AnalizzaPolizzaPage() {
               Analisi Polizze - {data.compagnia_nome}
             </h1>
             <p className="text-slate-600 mt-1">
-              Panoramica delle tipologie di assicurazione e relative polizze per questa compagnia
+              Panoramica dei rami di assicurazione e relative polizze per questa compagnia
             </p>
           </div>
           <div className="flex gap-2">
@@ -717,7 +800,7 @@ export default function AnalizzaPolizzaPage() {
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center gap-2">
                 <Tag className="h-4 w-4" />
-                Tipologie Totali
+                Rami di assicurazione Totali
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -775,7 +858,7 @@ export default function AnalizzaPolizzaPage() {
       {/* Tipologie Table */}
       <Card>
         <CardHeader>
-          <CardTitle>Tipologie di Assicurazione</CardTitle>
+          <CardTitle>Rami di Assicurazione</CardTitle>
           <CardDescription>
             Lista delle tipologie associate alla compagnia {data.compagnia_nome}
             {data.total_tipologie > 0 && (
@@ -793,7 +876,7 @@ export default function AnalizzaPolizzaPage() {
                 Nessuna tipologia trovata
               </h3>
               <p className="text-sm text-muted-foreground">
-                Questa compagnia non ha ancora tipologie di assicurazione associate
+                Questa compagnia non ha ancora rami di assicurazione associate
               </p>
             </div>
           ) : (
@@ -892,29 +975,74 @@ export default function AnalizzaPolizzaPage() {
                                   </div>
                                 </div>
                                 
-                                {/* Analizza tutto button */}
-                                <Button
-                                  size="sm"
-                                  variant="default"
-                                  onClick={(e) => {
-                                    e.stopPropagation()
-                                    handleAnalyzeAllGaranzie(tipologia.tipologia_id)
-                                  }}
-                                  disabled={analyzingAllGaranzie.has(tipologia.tipologia_id)}
-                                  className="h-8 px-3 text-xs"
-                                >
-                                  {analyzingAllGaranzie.has(tipologia.tipologia_id) ? (
-                                    <>
-                                      <Loader2 className="mr-1 h-3 w-3 animate-spin" />
-                                      Analizzando tutto...
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Search className="mr-1 h-3 w-3" />
-                                      Analizza tutto
-                                    </>
+                                {/* Analizza tutto button with progress */}
+                                <div className="flex flex-col gap-2">
+                                  <div className="flex items-center gap-2">
+                                    <Button
+                                      size="sm"
+                                      variant="default"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleAnalyzeAllGaranzie(tipologia.tipologia_id)
+                                      }}
+                                      disabled={analyzingAllGaranzie.has(tipologia.tipologia_id)}
+                                      className="h-8 px-3 text-xs"
+                                    >
+                                      {analyzingAllGaranzie.has(tipologia.tipologia_id) ? (
+                                        <>
+                                          <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                          Analizzando...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Search className="mr-1 h-3 w-3" />
+                                          Analizza tutto
+                                        </>
+                                      )}
+                                    </Button>
+                                  </div>
+                                  
+                                  {/* Progress indicator */}
+                                  {batchProgress.has(tipologia.tipologia_id) && (
+                                    <div className="w-full max-w-xs">
+                                      {(() => {
+                                        const progress = batchProgress.get(tipologia.tipologia_id)!
+                                        const percentage = (progress.completed / progress.total) * 100
+                                        const elapsed = Date.now() - progress.startTime
+                                        const avgTimePerItem = progress.completed > 0 ? elapsed / progress.completed : 0
+                                        const estimatedRemaining = avgTimePerItem * (progress.total - progress.completed)
+                                        const eta = estimatedRemaining > 0 ? Math.ceil(estimatedRemaining / 1000) : 0
+                                        
+                                        return (
+                                          <div className="space-y-1">
+                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                              <div className="flex items-center gap-1">
+                                                <TrendingUp className="h-3 w-3" />
+                                                <span>{progress.completed}/{progress.total} completate</span>
+                                                {progress.errors > 0 && (
+                                                  <span className="text-red-600">({progress.errors} errori)</span>
+                                                )}
+                                              </div>
+                                              {eta > 0 && analyzingAllGaranzie.has(tipologia.tipologia_id) && (
+                                                <div className="flex items-center gap-1">
+                                                  <Clock className="h-3 w-3" />
+                                                  <span>~{eta}s</span>
+                                                </div>
+                                              )}
+                                            </div>
+                                            <Progress 
+                                              value={percentage} 
+                                              className="h-2 bg-muted" 
+                                            />
+                                            <div className="text-xs text-muted-foreground">
+                                              {Math.round(percentage)}% completato
+                                            </div>
+                                          </div>
+                                        )
+                                      })()}
+                                    </div>
                                   )}
-                                </Button>
+                                </div>
                               </div>
                             </div>
                             
@@ -928,10 +1056,11 @@ export default function AnalizzaPolizzaPage() {
                                 {/* Group garanzie by sezione */}
                                 {Object.entries(
                                   tipologia.garanzie.garanzie.items.reduce((acc, garanzia) => {
-                                    if (!acc[garanzia.sezione]) {
-                                      acc[garanzia.sezione] = []
+                                    const sezione = garanzia.sezione || 'Sezione non specificata'
+                                    if (!acc[sezione]) {
+                                      acc[sezione] = []
                                     }
-                                    acc[garanzia.sezione].push(garanzia)
+                                    acc[sezione].push(garanzia)
                                     return acc
                                   }, {} as Record<string, Garanzia[]>)
                                 ).map(([sezione, garanzie]) => (

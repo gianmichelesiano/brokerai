@@ -253,15 +253,15 @@ async def create_garanzia(
     Crea una nuova garanzia
     """
     try:
-        # Check if garanzia with same title already exists
-        existing = await garanzie_service.get_garanzia_by_title(garanzia_data.titolo, supabase)
+        # Check if garanzia with same title already exists (within the same company)
+        existing = await garanzie_service.get_garanzia_by_title(garanzia_data.titolo, user_context.company_id, supabase)
         if existing:
             raise ValidationError(
                 f"Esiste già una garanzia con il titolo '{garanzia_data.titolo}'",
                 "Utilizzare un titolo diverso"
             )
         
-        garanzia = await garanzie_service.create_garanzia(garanzia_data, supabase)
+        garanzia = await garanzie_service.create_garanzia(garanzia_data, user_context.company_id, supabase)
         
         logger.info(f"Created garanzia {garanzia.id}: {garanzia.titolo}")
         
@@ -298,7 +298,7 @@ async def update_garanzia(
         
         # Check if new title conflicts with existing garanzia
         if garanzia_data.titolo and garanzia_data.titolo != existing.titolo:
-            title_conflict = await garanzie_service.get_garanzia_by_title(garanzia_data.titolo, supabase)
+            title_conflict = await garanzie_service.get_garanzia_by_title(garanzia_data.titolo, user_context.company_id, supabase)
             if title_conflict and title_conflict.id != garanzia_id:
                 raise ValidationError(
                     f"Esiste già una garanzia con il titolo '{garanzia_data.titolo}'",

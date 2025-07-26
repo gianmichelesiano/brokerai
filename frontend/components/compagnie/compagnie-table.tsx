@@ -196,6 +196,44 @@ interface SupabasePolizzaLinkProps {
   children: React.ReactNode
 }
 function SupabasePolizzaLink({ polizzaPath, children }: SupabasePolizzaLinkProps) {
-  // Mostra solo il badge senza link
-  return <span>{children}</span>;
+  const [downloadUrl, setDownloadUrl] = useState<string | null>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const getSignedUrl = async () => {
+      try {
+        const { data, error } = await supabase.storage
+          .from('polizze')
+          .createSignedUrl(polizzaPath, 3600) // URL valido per 1 ora
+        
+        if (error) {
+          console.error('Errore nel creare URL firmato:', error)
+          return
+        }
+        
+        setDownloadUrl(data.signedUrl)
+      } catch (error) {
+        console.error('Errore nel ottenere URL firmato:', error)
+      }
+    }
+
+    if (polizzaPath) {
+      getSignedUrl()
+    }
+  }, [polizzaPath, supabase])
+
+  if (downloadUrl) {
+    return (
+      <a 
+        href={downloadUrl} 
+        target="_blank" 
+        rel="noopener noreferrer"
+        className="hover:opacity-80 transition-opacity"
+      >
+        {children}
+      </a>
+    )
+  }
+  
+  return <span>{children}</span>
 }

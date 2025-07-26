@@ -86,8 +86,8 @@ export function ViewCompagniaDialog({ compagnia, isOpen, onClose }: ViewCompagni
       
       
       
-      // response già contiene i dati JSON
-const data = response
+      // apiGet already returns parsed JSON
+      const data = response
       setFiles(data.files || [])
     } catch (error) {
       toast({

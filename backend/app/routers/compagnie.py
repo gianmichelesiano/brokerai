@@ -455,22 +455,23 @@ async def update_compagnia(
 @router.delete("/{compagnia_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_compagnia(
     compagnia_id: int,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
     Elimina una compagnia
     """
     try:
-        # Verifica se la compagnia esiste
-        existing = supabase.table("compagnie").select("id").eq("id", compagnia_id).execute()
+        # Verifica se la compagnia esiste (con filtro multi-tenancy)
+        existing = supabase.table("compagnie").select("id").eq("id", compagnia_id).eq("company_id", user_context.company_id).execute()
         if not existing.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Compagnia con ID {compagnia_id} non trovata"
             )
         
-        # Elimina la compagnia
-        result = supabase.table("compagnie").delete().eq("id", compagnia_id).execute()
+        # Elimina la compagnia (con filtro multi-tenancy)
+        result = supabase.table("compagnie").delete().eq("id", compagnia_id).eq("company_id", user_context.company_id).execute()
         
         # Non restituire nulla per status 204
         return None
@@ -639,14 +640,15 @@ async def get_compagnia_files(
 async def check_analisi_exists(
     compagnia_id: int,
     garanzia_id: int,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
     Verifica se esiste già un'analisi AI per una specifica combinazione compagnia-garanzia
     """
     try:
-        # Verifica se esiste un record nella tabella analisi_ai_polizze
-        result = supabase.table("analisi_ai_polizze").select("id").eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).execute()
+        # Verifica se esiste un record nella tabella analisi_ai_polizze (con filtro company_id)
+        result = supabase.table("analisi_ai_polizze").select("id").eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).eq("company_id", user_context.company_id).execute()
         
         exists = len(result.data) > 0
         
@@ -664,6 +666,7 @@ async def check_analisi_exists(
 async def get_analisi_esistente(
     compagnia_id: int,
     garanzia_id: int,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
@@ -692,8 +695,8 @@ async def get_analisi_esistente(
         # Estrai il nome della sezione dal join
         sezione_nome = garanzia.get("sezioni", {}).get("nome") if garanzia.get("sezioni") else None
         
-        # Recupera l'analisi esistente
-        analisi_result = supabase.table("analisi_ai_polizze").select("*").eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).execute()
+        # Recupera l'analisi esistente (con filtro company_id)
+        analisi_result = supabase.table("analisi_ai_polizze").select("*").eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).eq("company_id", user_context.company_id).execute()
         
         if not analisi_result.data:
             raise HTTPException(
@@ -752,6 +755,7 @@ async def get_analisi_esistente(
 @router.post("/analizza-polizza", response_model=AnalizzaPolizzaResponse)
 async def analizza_polizza(
     request: AnalizzaPolizzaRequest,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
@@ -853,6 +857,7 @@ async def analizza_polizza(
                     "compagnia_id": compagnia_id,
                     "garanzia_id": garanzia_id,
                     "tipologia_assicurazione_id": tipologia_assicurazione_id,
+                    "company_id": user_context.company_id,  # Multi-tenancy
                     "ai_titolo": ai_titolo,
                     "ai_testo_estratto": ai_testo_estratto,
                     "ai_riferimenti_articoli": ai_riferimenti_articoli,
@@ -861,12 +866,12 @@ async def analizza_polizza(
                     "updated_at": now
                 }
                 
-                # Verifica se esiste già un record per questa combinazione compagnia-garanzia
-                existing_analisi = supabase.table("analisi_ai_polizze").select("id").eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).execute()
+                # Verifica se esiste già un record per questa combinazione compagnia-garanzia (con filtro company_id)
+                existing_analisi = supabase.table("analisi_ai_polizze").select("id").eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).eq("company_id", user_context.company_id).execute()
                 
                 if existing_analisi.data:
-                    # Aggiorna il record esistente
-                    update_result = supabase.table("analisi_ai_polizze").update(analisi_data).eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).execute()
+                    # Aggiorna il record esistente (con filtro company_id)
+                    update_result = supabase.table("analisi_ai_polizze").update(analisi_data).eq("compagnia_id", compagnia_id).eq("garanzia_id", garanzia_id).eq("company_id", user_context.company_id).execute()
                     if update_result.data:
                         analisi_ai_polizza_id = update_result.data[0]["id"]
                     logger.info(f"Aggiornato record analisi AI per compagnia {compagnia_id}, garanzia {garanzia_id}")

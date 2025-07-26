@@ -66,6 +66,18 @@ export default function MappingPage() {
   }, [])
 
   useEffect(() => {
+    if (selectedTipologia) {
+      // Carica le compagnie filtrate per la tipologia selezionata
+      fetchCompagnieByTipologia(selectedTipologia)
+      // Reset delle compagnie selezionate quando cambia la tipologia
+      setSelectedCompagnie([])
+    } else {
+      setCompagnie([])
+      setSelectedCompagnie([])
+    }
+  }, [selectedTipologia])
+
+  useEffect(() => {
     if (selectedTipologia && selectedCompagnie.length > 0) {
       fetchGaranzieAndAnalisi()
     } else {
@@ -84,14 +96,29 @@ export default function MappingPage() {
     }
   }
 
-  const fetchAllCompagnie = async () => {
+  const fetchCompagnieByTipologia = async (tipologiaId: string) => {
     try {
-      const data = await apiGet<{ items: Compagnia[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      setCompagnie(data.items || [])
+      const data = await apiGet<{ compagnie: { compagnia_id: number; compagnia_nome: string; has_text: boolean; attiva: boolean }[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia/tipologia/${tipologiaId}/compagnie?attiva=true`)
+      
+      // Filtra solo le compagnie che hanno caricato un file con testo estratto
+      const compagnieConFile = data.compagnie
+        .filter(c => c.has_text && c.attiva)
+        .map(c => ({
+          id: c.compagnia_id,
+          nome: c.compagnia_nome
+        }))
+      
+      setCompagnie(compagnieConFile || [])
     } catch (error) {
       console.error('Errore:', error)
       toast.error('Errore nel caricamento delle compagnie')
+      setCompagnie([])
     }
+  }
+
+  const fetchAllCompagnie = async () => {
+    // Non caricare più tutte le compagnie automaticamente
+    setCompagnie([])
   }
 
   const fetchGaranzieAndAnalisi = async () => {
@@ -258,27 +285,40 @@ export default function MappingPage() {
               Compagnie
             </CardTitle>
             <CardDescription>
-              Seleziona le compagnie da analizzare
+              {selectedTipologia 
+                ? "Seleziona le compagnie da analizzare (solo quelle con file caricato per questo ramo)" 
+                : "Prima seleziona un ramo assicurativo per vedere le compagnie disponibili"
+              }
             </CardDescription>
           </CardHeader>
           <CardContent>
             <ScrollArea className="h-[150px] pr-4">
               <div className="space-y-3">
-                {compagnie.map((compagnia) => (
-                  <div key={compagnia.id} className="flex items-center space-x-2">
-                    <Checkbox
-                      id={`compagnia-${compagnia.id}`}
-                      checked={selectedCompagnie.includes(compagnia.id)}
-                      onCheckedChange={() => handleCompagniaToggle(compagnia.id)}
-                    />
-                    <Label
-                      htmlFor={`compagnia-${compagnia.id}`}
-                      className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
-                    >
-                      {compagnia.nome}
-                    </Label>
+                {!selectedTipologia ? (
+                  <div className="text-center text-muted-foreground py-4">
+                    Seleziona prima un ramo assicurativo
                   </div>
-                ))}
+                ) : compagnie.length === 0 ? (
+                  <div className="text-center text-muted-foreground py-4">
+                    Nessuna compagnia disponibile per questo ramo assicurativo
+                  </div>
+                ) : (
+                  compagnie.map((compagnia) => (
+                    <div key={compagnia.id} className="flex items-center space-x-2">
+                      <Checkbox
+                        id={`compagnia-${compagnia.id}`}
+                        checked={selectedCompagnie.includes(compagnia.id)}
+                        onCheckedChange={() => handleCompagniaToggle(compagnia.id)}
+                      />
+                      <Label
+                        htmlFor={`compagnia-${compagnia.id}`}
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer flex-1"
+                      >
+                        {compagnia.nome}
+                      </Label>
+                    </div>
+                  ))
+                )}
               </div>
             </ScrollArea>
             {selectedCompagnie.length > 0 && (

@@ -21,8 +21,8 @@ export class ClientsAPI {
       let errorMessage = `Errore ${response.status}: ${response.statusText}`
       
       try {
-        // response già contiene i dati JSON
-const errorData = response
+        // Parse error response JSON
+        const errorData = await response.json()
         if (errorData.detail) {
           errorMessage = errorData.detail
         } else if (errorData.message) {

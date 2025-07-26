@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Eye, Trash2, FileDown, Search } from "lucide-react";
+import { Loader2, Eye, Trash2, FileDown, Search, Download } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { createClient } from "@/lib/supabase"; // Import for Supabase client
 import JsonComparisonViewer from "./JsonComparisonViewer"; // Import the JSON comparison viewer component
@@ -44,6 +44,7 @@ export default function StoricoPage() {
   const [tipologie, setTipologie] = useState<Tipologia[]>([]);
   const [filterTipologia, setFilterTipologia] = useState<number | "">("");
   const [search, setSearch] = useState("");
+  const [exportingPDFId, setExportingPDFId] = useState<number | null>(null);
 
   useEffect(() => {
     fetchTipologie();
@@ -161,8 +162,64 @@ export default function StoricoPage() {
     }
   };
 
-  const handleExportPDF = (id: number) => {
-    toast.info("Funzionalità di esportazione PDF non ancora implementata.");
+  const handleExportPDF = async (id: number) => {
+    setExportingPDFId(id);
+    
+    try {
+      // Ottieni token di autenticazione
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
+      const accessToken = session?.access_token;
+
+      if (!accessToken) {
+        toast.error("Utente non autenticato. Effettua il login.");
+        return;
+      }
+
+      // Chiama l'endpoint server-side per generare il PDF
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/pdf/confronto/${id}`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `Errore HTTP: ${response.status}`);
+      }
+
+      // Scarica il PDF
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      
+      // Estrai il nome del file dall'header Content-Disposition
+      const contentDisposition = response.headers.get('Content-Disposition');
+      let filename = `confronto-${id}.pdf`;
+      
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename=([^;]+)/);
+        if (filenameMatch) {
+          filename = filenameMatch[1].replace(/['"]/g, '');
+        }
+      }
+      
+      // Scarica il file
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+      toast.success('PDF esportato con successo');
+    } catch (error) {
+      console.error('Errore durante l\'export PDF:', error);
+      toast.error('Errore durante l\'export PDF');
+    } finally {
+      setExportingPDFId(null);
+    }
   };
 
   return (
@@ -237,11 +294,22 @@ export default function StoricoPage() {
                   <Button size="sm" variant="destructive" onClick={() => handleDelete(confronto.id)}>
                     <Trash2 className="h-4 w-4 mr-1" /> Elimina
                   </Button>
-                  {/* 
-                  <Button size="sm" variant="secondary" onClick={() => handleExportPDF(confronto.id)}>
-                    <FileDown className="h-4 w-4 mr-1" /> Esporta PDF
+                  <Button 
+                    size="sm" 
+                    variant="secondary" 
+                    onClick={() => handleExportPDF(confronto.id)}
+                    disabled={exportingPDFId === confronto.id}
+                  >
+                    {exportingPDFId === confronto.id ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-1 animate-spin" /> Generando...
+                      </>
+                    ) : (
+                      <>
+                        <Download className="h-4 w-4 mr-1" /> Esporta PDF
+                      </>
+                    )}
                   </Button>
-                   */}
                 </div>
               </CardContent>
             </Card>
@@ -279,8 +347,26 @@ export default function StoricoPage() {
                 <strong>Creato il:</strong> {new Date(selectedConfronto.created_at).toLocaleString("it-IT")}
               </div>
               <div>
-                <strong>Risulato:</strong>
+                <strong>Risultato:</strong>
                 <JsonComparisonViewer data={selectedConfronto.dati_confronto} />
+              </div>
+              <div className="flex gap-2 pt-4 border-t">
+                <Button 
+                  variant="outline" 
+                  onClick={() => handleExportPDF(selectedConfronto.id)}
+                  disabled={exportingPDFId === selectedConfronto.id}
+                  className="flex-1"
+                >
+                  {exportingPDFId === selectedConfronto.id ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" /> Generando PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="h-4 w-4 mr-2" /> Esporta PDF
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           ) : (

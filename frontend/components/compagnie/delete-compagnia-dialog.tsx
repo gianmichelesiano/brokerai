@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { apiDelete } from "@/lib/api"
 
 interface Compagnia {
   id: number

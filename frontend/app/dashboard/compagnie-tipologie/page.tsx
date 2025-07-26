@@ -160,7 +160,7 @@ export default function CompagnieTipologiePage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900 font-display">Relazioni Compagnia-Tipologia</h1>
-          <p className="text-slate-600 mt-1">Gestisci le relazioni tra compagnie e tipologie di assicurazione</p>
+          <p className="text-slate-600 mt-1">Gestisci le relazioni tra compagnie e i rami di assicurazione</p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={handleRefresh} disabled={isLoading}>
@@ -217,7 +217,7 @@ export default function CompagnieTipologiePage() {
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
               <Tag className="h-4 w-4" />
-              Tipologie Coinvolte
+              Rami Coinvolti
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -298,7 +298,7 @@ export default function CompagnieTipologiePage() {
         <CardHeader>
           <CardTitle>Relazioni Compagnia-Tipologia</CardTitle>
           <CardDescription>
-            Lista delle relazioni tra compagnie e tipologie di assicurazione
+            Lista delle relazioni tra compagnie e rami di assicurazione
             {filteredRelazioni.length !== relazioni.length && (
               <span className="ml-2 text-sm">
                 ({filteredRelazioni.length} di {relazioni.length} mostrate)

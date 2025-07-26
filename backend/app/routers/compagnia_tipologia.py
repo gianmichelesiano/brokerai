@@ -25,6 +25,8 @@ from app.models.compagnia_tipologia import (
 )
 from app.config.database import get_supabase
 from app.utils.exceptions import NotFoundError, ValidationError
+from app.dependencies.auth import get_current_user_context
+from app.models.companies import UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -310,6 +312,7 @@ async def get_compagnia_tipologia(
 @router.post("/", response_model=CompagniaTipologia, status_code=status.HTTP_201_CREATED)
 async def create_compagnia_tipologia(
     relazione_data: CompagniaTipologiaCreate,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
@@ -347,6 +350,7 @@ async def create_compagnia_tipologia(
         insert_data = {
             "compagnia_id": relazione_data.compagnia_id,
             "tipologia_assicurazione_id": relazione_data.tipologia_assicurazione_id,
+            "company_id": user_context.company_id,  # Multi-tenancy
             "polizza_filename": relazione_data.polizza_filename,
             "polizza_path": relazione_data.polizza_path,
             "polizza_text": relazione_data.polizza_text,
@@ -381,14 +385,15 @@ async def create_compagnia_tipologia(
 async def update_compagnia_tipologia(
     relazione_id: int,
     relazione_data: CompagniaTipologiaUpdate,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
     Aggiorna una relazione compagnia-tipologia esistente
     """
     try:
-        # Verifica se la relazione esiste
-        existing = supabase.table("compagnia_tipologia_assicurazione").select("*").eq("id", relazione_id).execute()
+        # Verifica se la relazione esiste (con filtro multi-tenancy)
+        existing = supabase.table("compagnia_tipologia_assicurazione").select("*").eq("id", relazione_id).eq("company_id", user_context.company_id).execute()
         if not existing.data:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
@@ -414,8 +419,8 @@ async def update_compagnia_tipologia(
         from datetime import datetime
         update_data["updated_at"] = datetime.utcnow().isoformat()
         
-        # Esegui l'aggiornamento
-        result = supabase.table("compagnia_tipologia_assicurazione").update(update_data).eq("id", relazione_id).execute()
+        # Esegui l'aggiornamento (con filtro multi-tenancy)
+        result = supabase.table("compagnia_tipologia_assicurazione").update(update_data).eq("id", relazione_id).eq("company_id", user_context.company_id).execute()
         
         if not result.data:
             raise HTTPException(
@@ -707,6 +712,7 @@ async def get_compagnie_by_tipologia(
 @router.post("/bulk", response_model=List[CompagniaTipologia])
 async def bulk_create_compagnia_tipologie(
     bulk_data: CompagniaTipologiaBulkCreate,
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
@@ -743,6 +749,7 @@ async def bulk_create_compagnia_tipologie(
                 insert_data = {
                     "compagnia_id": relazione_data.compagnia_id,
                     "tipologia_assicurazione_id": relazione_data.tipologia_assicurazione_id,
+                    "company_id": user_context.company_id,  # Multi-tenancy
                     "polizza_filename": relazione_data.polizza_filename,
                     "polizza_path": relazione_data.polizza_path,
                     "polizza_text": relazione_data.polizza_text,
@@ -823,8 +830,8 @@ async def bulk_update_compagnia_tipologie(
                 from datetime import datetime
                 update_data["updated_at"] = datetime.utcnow().isoformat()
                 
-                # Esegui l'aggiornamento
-                result = supabase.table("compagnia_tipologia_assicurazione").update(update_data).eq("id", relazione_id).execute()
+                # Esegui l'aggiornamento (con filtro multi-tenancy)
+                result = supabase.table("compagnia_tipologia_assicurazione").update(update_data).eq("id", relazione_id).eq("company_id", user_context.company_id).execute()
                 
                 if result.data:
                     updated_relations.append(CompagniaTipologia(**result.data[0]))

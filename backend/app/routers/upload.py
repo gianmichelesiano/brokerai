@@ -11,6 +11,7 @@ from datetime import datetime
 from app.config.database import get_supabase
 from app.utils.exceptions import ValidationError
 from app.services.file_processor import file_processor
+from app.dependencies.auth import get_current_user_context, UserContext
 
 logger = logging.getLogger(__name__)
 
@@ -59,6 +60,7 @@ async def upload_file_compagnia_tipologia(
     compagnia_id: int = Form(...),
     tipologia_assicurazione_id: int = Form(...),
     file: UploadFile = File(...),
+    user_context: UserContext = Depends(get_current_user_context),
     supabase=Depends(get_supabase)
 ):
     """
@@ -91,15 +93,15 @@ async def upload_file_compagnia_tipologia(
                 detail=f"Tipo file non supportato. Tipi consentiti: {', '.join(allowed_types)}"
             )
         
-        # Verifica se la compagnia esiste
-        compagnia_check = supabase.table("compagnie").select("id, nome").eq("id", compagnia_id).execute()
+        # Verifica se la compagnia esiste e appartiene alla company dell'utente
+        compagnia_check = supabase.table("compagnie").select("id, nome").eq("id", compagnia_id).eq("company_id", user_context.company_id).execute()
         if not compagnia_check.data:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Compagnia con ID {compagnia_id} non trovata"
+                detail=f"Compagnia con ID {compagnia_id} non trovata o non accessibile"
             )
         
-        # Verifica se la tipologia esiste
+        # Verifica se la tipologia esiste (le tipologie sono condivise tra tutte le companies)
         tipologia_check = supabase.table("tipologia_assicurazione").select("id, nome").eq("id", tipologia_assicurazione_id).execute()
         if not tipologia_check.data:
             raise HTTPException(
@@ -157,12 +159,36 @@ async def upload_file_compagnia_tipologia(
             logger.error(f"Errore nell'estrazione del testo da {file.filename}: {e}")
             extraction_errors.append(f"Errore nell'estrazione del testo: {str(e)}")
         
-        # TODO: Implementare upload su Supabase Storage
-        # Per ora simuliamo il salvataggio
-        mock_file_url = f"/storage/polizze/{unique_filename}"
+        # Upload file to Supabase Storage
+        try:
+            # Upload to Supabase Storage bucket 'polizze'
+            upload_result = supabase.storage.from_("polizze").upload(
+                file_path,
+                file_content,
+                file_options={
+                    "content-type": file.content_type,
+                    "cache-control": "3600"
+                }
+            )
+            
+            if upload_result.error:
+                logger.error(f"Errore upload Supabase Storage: {upload_result.error}")
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail=f"Errore nel salvataggio del file: {upload_result.error}"
+                )
+            
+            # Get public URL for the uploaded file
+            file_url_result = supabase.storage.from_("polizze").get_public_url(file_path)
+            file_url = file_url_result if isinstance(file_url_result, str) else file_url_result.get('publicURL', f"/storage/polizze/{unique_filename}")
+            
+        except Exception as e:
+            logger.error(f"Errore nell'upload su Supabase Storage: {e}")
+            # Fallback to mock URL if storage upload fails
+            file_url = f"/storage/polizze/{unique_filename}"
         
         # Verifica se esiste già una relazione tra questa compagnia e tipologia
-        existing_relation = supabase.table("compagnia_tipologia_assicurazione").select("*").eq("compagnia_id", compagnia_id).eq("tipologia_assicurazione_id", tipologia_assicurazione_id).execute()
+        existing_relation = supabase.table("compagnia_tipologia_assicurazione").select("*").eq("compagnia_id", compagnia_id).eq("tipologia_assicurazione_id", tipologia_assicurazione_id).eq("company_id", user_context.company_id).execute()
         
         now = datetime.utcnow().isoformat()
         
@@ -173,6 +199,7 @@ async def upload_file_compagnia_tipologia(
                 "polizza_filename": unique_filename,
                 "polizza_path": file_path,
                 "polizza_text": extracted_text,
+                "company_id": user_context.company_id,
                 "updated_at": now
             }
             
@@ -195,6 +222,7 @@ async def upload_file_compagnia_tipologia(
                 "polizza_path": file_path,
                 "polizza_text": extracted_text,
                 "attiva": True,
+                "company_id": user_context.company_id,
                 "created_at": now,
                 "updated_at": now
             }
@@ -218,7 +246,7 @@ async def upload_file_compagnia_tipologia(
                 "content_type": file.content_type,
                 "size": len(file_content),
                 "path": file_path,
-                "url": mock_file_url
+                "url": file_url
             },
             "text_extraction": {
                 "success": text_extraction_success,

@@ -12,8 +12,8 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { toast } from "sonner"
-import { BarChart3, Building2, FileText, Loader2, AlertCircle, CheckCircle2, Tag, Save } from "lucide-react" // Added Save icon
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { BarChart3, Building2, FileText, Loader2, AlertCircle, CheckCircle2, Tag, Save, ChevronDown, ChevronUp, Download } from "lucide-react" // Added Save icon and chevron icons
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog" // New import
 import { Input } from "@/components/ui/input" // New import
@@ -75,6 +75,10 @@ export default function ConfrontoPolizzePage() {
   // Aggiungi stato per il dialog di salvataggio
   const [showSaveDialog, setShowSaveDialog] = useState(false)
   const [saveForm, setSaveForm] = useState({ nome: '', descrizione: '' })
+  // Stato per controllare quali card sono espanse
+  const [expandedCards, setExpandedCards] = useState<number[]>([]) // Inizialmente tutte le card sono chiuse
+  // Stato per l'export PDF
+  const [isExportingPDF, setIsExportingPDF] = useState(false)
 
   useEffect(() => {
     fetchTipologie()
@@ -109,9 +113,19 @@ export default function ConfrontoPolizzePage() {
     try {
       setLoadingData(true)
       
-      // Fetch all compagnie (no filter by tipologia)
-      const compagnieData = await apiGet<{ items: Compagnia[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnie/?page=1&size=100&sort_by=created_at&sort_order=desc`)
-      setCompagnie(compagnieData.items || [])
+      // Fetch compagnie filtered by tipologia (only those with uploaded files for this insurance type)
+      const compagnieData = await apiGet<{ compagnie: { compagnia_id: number; compagnia_nome: string; has_text: boolean; attiva: boolean }[] }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/compagnia-tipologia/tipologia/${selectedTipologia}/compagnie?attiva=true`)
+      
+      // Filter only companies that have uploaded files with extracted text
+      const compagnieConFile = compagnieData.compagnie
+        .filter(c => c.has_text && c.attiva)
+        .map(c => ({
+          id: c.compagnia_id,
+          nome: c.compagnia_nome,
+          created_at: new Date().toISOString() // Placeholder since we don't have this from the API
+        }))
+      
+      setCompagnie(compagnieConFile || [])
 
       // Fetch garanzie filtered by tipologia
       const garanzieData = await apiGet<{ garanzie: { items: Garanzia[] } }>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/garanzie/by-tipologia/${selectedTipologia}?page=1&size=100&sort_by=created_at&sort_order=desc`)
@@ -119,6 +133,8 @@ export default function ConfrontoPolizzePage() {
     } catch (error) {
       console.error('Errore:', error)
       toast.error('Errore nel caricamento dei dati')
+      setCompagnie([])
+      setGaranzie([])
     } finally {
       setLoadingData(false)
     }
@@ -137,6 +153,34 @@ export default function ConfrontoPolizzePage() {
       prev.includes(garanziaId)
         ? prev.filter(id => id !== garanziaId)
         : [...prev, garanziaId]
+    )
+  }
+
+  const handleSelectAllCompagnie = () => {
+    if (selectedCompagnie.length === compagnie.length) {
+      // Deselect all
+      setSelectedCompagnie([])
+    } else {
+      // Select all
+      setSelectedCompagnie(compagnie.map(c => c.id))
+    }
+  }
+
+  const handleSelectAllGaranzie = () => {
+    if (selectedGaranzie.length === garanzie.length) {
+      // Deselect all
+      setSelectedGaranzie([])
+    } else {
+      // Select all
+      setSelectedGaranzie(garanzie.map(g => g.id))
+    }
+  }
+
+  const toggleCardExpansion = (index: number) => {
+    setExpandedCards(prev => 
+      prev.includes(index)
+        ? prev.filter(i => i !== index)
+        : [...prev, index]
     )
   }
 
@@ -168,6 +212,8 @@ export default function ConfrontoPolizzePage() {
       const data = await apiPost<ConfrontoRisultato>(`${process.env.NEXT_PUBLIC_BASE_URL}/api/confronti/compare`, requestBody)
 
       setRisultati(data)
+      // Reset expanded cards - inizialmente tutte chiuse
+      setExpandedCards([])
       toast.success("Confronto completato con successo")
     } catch (error) {
       console.error('Errore:', error)
@@ -182,6 +228,82 @@ export default function ConfrontoPolizzePage() {
       }
     } finally {
       setLoading(false)
+    }
+  }
+
+  // Funzione per export PDF
+  const handleExportPDF = async () => {
+    if (!risultati || !selectedTipologiaData) {
+      toast.error("Nessun risultato di confronto disponibile per l'export")
+      return
+    }
+
+    setIsExportingPDF(true)
+    
+    try {
+      // Prepara i dati per il PDF
+      const compagnieNames = selectedCompagnie
+        .map(id => compagnie.find(c => c.id === id)?.nome)
+        .filter(Boolean) as string[]
+      
+      const garanzieNames = selectedGaranzie
+        .map(id => garanzie.find(g => g.id === id)?.titolo)
+        .filter(Boolean) as string[]
+
+      // Ottieni token di autenticazione
+      const supabase = createClient()
+      const { data: { session } } = await supabase.auth.getSession()
+      const accessToken = session?.access_token
+
+      if (!accessToken) {
+        toast.error("Utente non autenticato. Effettua il login.")
+        return
+      }
+
+      // Chiama l'endpoint server-side per generare il PDF
+      const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL}/api/pdf/confronto/live`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${accessToken}`
+        },
+        body: JSON.stringify({
+          tipologia_nome: selectedTipologiaData.nome,
+          compagnie_nomi: compagnieNames,
+          garanzie_nomi: garanzieNames,
+          risultati_analisi: risultati.risultati_analisi,
+          timestamp: risultati.timestamp
+        })
+      })
+
+      if (!response.ok) {
+        throw new Error(`Errore HTTP: ${response.status}`)
+      }
+
+      // Scarica il PDF
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      
+      // Genera nome file
+      const tipologiaSanitized = selectedTipologiaData.nome.toLowerCase().replace(/[^a-z0-9]/g, '-')
+      const timestamp = new Date().toISOString().split('T')[0]
+      const filename = `confronto-${tipologiaSanitized}-${timestamp}.pdf`
+      
+      // Scarica il file
+      const link = document.createElement('a')
+      link.href = url
+      link.download = filename
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
+      window.URL.revokeObjectURL(url)
+      
+      toast.success('PDF esportato con successo')
+    } catch (error) {
+      console.error('Errore durante l\'export PDF:', error)
+      toast.error('Errore durante l\'export PDF')
+    } finally {
+      setIsExportingPDF(false)
     }
   }
 
@@ -305,7 +427,7 @@ export default function ConfrontoPolizzePage() {
                 Compagnie
               </CardTitle>
               <CardDescription>
-                Seleziona almeno 2 compagnie
+                Seleziona almeno 2 compagnie (solo quelle con file caricato per questo ramo)
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -314,12 +436,32 @@ export default function ConfrontoPolizzePage() {
                   <Loader2 className="h-6 w-6 animate-spin" />
                 </div>
               ) : compagnie.length === 0 ? (
-                <div className="flex items-center justify-center h-[400px] text-sm text-muted-foreground">
-                  Nessuna compagnia disponibile per questa tipologia
+                <div className="flex items-center justify-center h-[400px] text-sm text-muted-foreground text-center">
+                  <div>
+                    Nessuna compagnia disponibile per questo ramo assicurativo.
+                    <br />
+                    Le compagnie devono aver caricato un file polizza per questo ramo.
+                  </div>
                 </div>
               ) : (
                 <>
-                  <ScrollArea className="h-[400px] pr-4">
+                  <div className="mb-3 pb-3 border-b">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="select-all-compagnie"
+                        checked={compagnie.length > 0 && selectedCompagnie.length === compagnie.length}
+                        indeterminate={selectedCompagnie.length > 0 && selectedCompagnie.length < compagnie.length}
+                        onCheckedChange={handleSelectAllCompagnie}
+                      />
+                      <Label
+                        htmlFor="select-all-compagnie"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Seleziona tutte ({compagnie.length})
+                      </Label>
+                    </div>
+                  </div>
+                  <ScrollArea className="h-[350px] pr-4">
                     <div className="space-y-3">
                       {compagnie.map((compagnia) => (
                         <div key={compagnia.id} className="flex items-center space-x-2">
@@ -372,7 +514,23 @@ export default function ConfrontoPolizzePage() {
                 </div>
               ) : (
                 <>
-                  <ScrollArea className="h-[400px] pr-4">
+                  <div className="mb-3 pb-3 border-b">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="select-all-garanzie"
+                        checked={garanzie.length > 0 && selectedGaranzie.length === garanzie.length}
+                        indeterminate={selectedGaranzie.length > 0 && selectedGaranzie.length < garanzie.length}
+                        onCheckedChange={handleSelectAllGaranzie}
+                      />
+                      <Label
+                        htmlFor="select-all-garanzie"
+                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
+                      >
+                        Seleziona tutte ({garanzie.length})
+                      </Label>
+                    </div>
+                  </div>
+                  <ScrollArea className="h-[350px] pr-4">
                     <div className="space-y-3">
                       {garanzie.map((garanzia) => (
                         <div key={garanzia.id} className="flex items-start space-x-2">
@@ -506,107 +664,148 @@ export default function ConfrontoPolizzePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <Tabs defaultValue="0" className="w-full">
-              <TabsList className="grid w-full" style={{ gridTemplateColumns: `repeat(${risultati.risultati_analisi.length}, 1fr)` }}>
-                {risultati.risultati_analisi.map((analisi, index) => (
-                  <TabsTrigger key={index} value={index.toString()}>
-                    {analisi.nome_garanzia}
-                  </TabsTrigger>
-                ))}
-              </TabsList>
-              
+            <div className="space-y-4">
               {risultati.risultati_analisi.map((analisi, index) => (
-                <TabsContent key={index} value={index.toString()} className="space-y-6 mt-6">
-                  {/* Compagnie Analizzate */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Compagnie Analizzate</h3>
-                    <div className="flex gap-2">
-                      {analisi.compagnie_analizzate.map((compagnia, i) => (
-                        <Badge key={i} variant="secondary">
-                          {compagnia}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* Punti Comuni */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                      <CheckCircle2 className="h-5 w-5 text-green-600" />
-                      Punti Comuni
-                    </h3>
-                    <ul className="space-y-2">
-                      {analisi.punti_comuni.map((punto, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <div className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0" />
-                          <span className="text-sm">{punto}</span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-
-                  {/* Confronto Dettagliato */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3">Confronto Dettagliato</h3>
-                    <div className="space-y-4">
-                      {analisi.confronto_dettagliato.map((confronto, i) => (
-                        <Card key={i}>
-                          <CardHeader className="pb-3">
-                            <CardTitle className="text-base">{confronto.aspetto}</CardTitle>
-                          </CardHeader>
-                          <CardContent className="space-y-3">
-                            {confronto.dettagli.map((dettaglio, j) => (
-                              <div key={j} className="space-y-1">
-                                <div className="flex items-center gap-2">
-                                  <Badge variant="outline" className="font-medium">
-                                    {dettaglio.compagnia}
-                                  </Badge>
-                                </div>
-                                <p className="text-sm text-muted-foreground pl-2">
-                                  {dettaglio.clausola}
-                                </p>
-                              </div>
+                <Card key={index} className="border-2">
+                  <Collapsible 
+                    open={expandedCards.includes(index)} 
+                    onOpenChange={() => toggleCardExpansion(index)}
+                  >
+                    <CollapsibleTrigger asChild>
+                      <CardHeader className="cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex items-center justify-between">
+                          <CardTitle className="text-lg">{analisi.nome_garanzia}</CardTitle>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="secondary" className="ml-2">
+                              {analisi.compagnie_analizzate.length} compagnie
+                            </Badge>
+                            {expandedCards.includes(index) ? (
+                              <ChevronUp className="h-4 w-4" />
+                            ) : (
+                              <ChevronDown className="h-4 w-4" />
+                            )}
+                          </div>
+                        </div>
+                        <CardDescription>
+                          Compagnie: {analisi.compagnie_analizzate.join(', ')}
+                        </CardDescription>
+                      </CardHeader>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <CardContent className="space-y-6 pt-0">
+                        {/* Compagnie Analizzate */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Compagnie Analizzate</h3>
+                          <div className="flex gap-2 flex-wrap">
+                            {analisi.compagnie_analizzate.map((compagnia, i) => (
+                              <Badge key={i} variant="secondary">
+                                {compagnia}
+                              </Badge>
                             ))}
-                          </CardContent>
-                        </Card>
-                      ))}
-                    </div>
-                  </div>
+                          </div>
+                        </div>
 
-                  {/* Principali Differenze */}
-                  <div>
-                    <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
-                      <AlertCircle className="h-5 w-5 text-amber-600" />
-                      Principali Differenze
-                    </h3>
-                    <Alert>
-                      <AlertCircle className="h-4 w-4" />
-                      <AlertDescription>
-                        <ul className="space-y-2 mt-2">
-                          {analisi.riepilogo_principali_differenze.map((differenza, i) => (
-                            <li key={i} className="flex items-start gap-2">
-                              <div className="w-1.5 h-1.5 bg-amber-600 rounded-full mt-1.5 flex-shrink-0" />
-                              <span className="text-sm">{differenza}</span>
-                            </li>
-                          ))}
-                        </ul>
-                      </AlertDescription>
-                    </Alert>
-                  </div>
-                </TabsContent>
+                        {/* Punti Comuni */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <CheckCircle2 className="h-5 w-5 text-green-600" />
+                            Punti Comuni
+                          </h3>
+                          <ul className="space-y-2">
+                            {analisi.punti_comuni.map((punto, i) => (
+                              <li key={i} className="flex items-start gap-2">
+                                <div className="w-1.5 h-1.5 bg-green-600 rounded-full mt-1.5 flex-shrink-0" />
+                                <span className="text-sm">{punto}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+
+                        {/* Confronto Dettagliato */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3">Confronto Dettagliato</h3>
+                          <div className="space-y-4">
+                            {analisi.confronto_dettagliato.map((confronto, i) => (
+                              <Card key={i} className="bg-muted/30">
+                                <CardHeader className="pb-3">
+                                  <CardTitle className="text-base">{confronto.aspetto}</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-3">
+                                  {confronto.dettagli.map((dettaglio, j) => (
+                                    <div key={j} className="space-y-1">
+                                      <div className="flex items-center gap-2">
+                                        <Badge variant="outline" className="font-medium">
+                                          {dettaglio.compagnia}
+                                        </Badge>
+                                      </div>
+                                      <p className="text-sm text-muted-foreground pl-2">
+                                        {dettaglio.clausola}
+                                      </p>
+                                    </div>
+                                  ))}
+                                </CardContent>
+                              </Card>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Principali Differenze */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <AlertCircle className="h-5 w-5 text-amber-600" />
+                            Principali Differenze
+                          </h3>
+                          <Alert>
+                            <AlertCircle className="h-4 w-4" />
+                            <AlertDescription>
+                              <ul className="space-y-2 mt-2">
+                                {analisi.riepilogo_principali_differenze.map((differenza, i) => (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <div className="w-1.5 h-1.5 bg-amber-600 rounded-full mt-1.5 flex-shrink-0" />
+                                    <span className="text-sm">{differenza}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </AlertDescription>
+                          </Alert>
+                        </div>
+                      </CardContent>
+                    </CollapsibleContent>
+                  </Collapsible>
+                </Card>
               ))}
-            </Tabs>
+            </div>
           </CardContent>
           {risultati && (
             <div className="px-6 pb-6">
-              <Button 
-                onClick={() => setShowSaveDialog(true)} 
-                className="w-full"
-                disabled={!selectedTipologia || selectedCompagnie.length === 0 || selectedGaranzie.length === 0}
-              >
-                <Save className="mr-2 h-4 w-4" />
-                Salva Confronto
-              </Button>
+              <div className="flex gap-3">
+                <Button 
+                  onClick={() => setShowSaveDialog(true)} 
+                  className="flex-1"
+                  disabled={!selectedTipologia || selectedCompagnie.length === 0 || selectedGaranzie.length === 0}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Salva Confronto
+                </Button>
+                <Button 
+                  variant="outline"
+                  onClick={handleExportPDF}
+                  className="flex-1"
+                  disabled={isExportingPDF || !risultati || !selectedTipologiaData}
+                >
+                  {isExportingPDF ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Generando PDF...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="mr-2 h-4 w-4" />
+                      Esporta PDF
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </Card>

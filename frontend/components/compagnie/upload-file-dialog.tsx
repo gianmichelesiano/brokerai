@@ -128,11 +128,15 @@ export function UploadFileDialog({ compagnia, isOpen, onClose, onSuccess }: Uplo
       formData.append("tipologia_assicurazione_id", selectedTipologia)
       formData.append("file", selectedFile)
 
-      // For FormData uploads, we need to use the apiClient's post method but handle FormData
-      // We'll modify the headers to not include Content-Type for FormData
-      const authHeaders = await apiClient['getAuthHeaders']()
-      const headers = { ...authHeaders }
-      //delete headers['Content-Type'] // Remove Content-Type to let browser set it with boundary
+      // For FormData uploads, we need to get auth headers but exclude Content-Type
+      const { data: { session } } = await createClient().auth.getSession()
+      const token = session?.access_token
+      
+      const headers: Record<string, string> = {}
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`
+      }
+      // Don't set Content-Type for FormData - browser will set it with boundary
 
       const response = await fetch(`${API_BASE_URL}/upload/compagnia-tipologia`, {
         method: 'POST',
@@ -140,7 +144,23 @@ export function UploadFileDialog({ compagnia, isOpen, onClose, onSuccess }: Uplo
         headers
       })
 
-      const result: UploadResponse = await apiClient.handleResponse<UploadResponse>(response)
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorMessage = `Errore ${response.status}: ${response.statusText}`
+        
+        try {
+          const errorData = JSON.parse(errorText)
+          errorMessage = errorData.detail || errorData.message || errorMessage
+        } catch {
+          if (errorText) {
+            errorMessage = errorText
+          }
+        }
+        
+        throw new Error(errorMessage)
+      }
+
+      const result: UploadResponse = await response.json()
 
       toast({
         title: "Successo",

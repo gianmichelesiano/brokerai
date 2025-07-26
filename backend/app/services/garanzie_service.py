@@ -117,10 +117,10 @@ class GaranzieService:
             logger.error(f"Error getting garanzia {garanzia_id}: {e}")
             raise DatabaseError(f"Errore nel recupero della garanzia: {str(e)}")
     
-    async def get_garanzia_by_title(self, title: str, supabase: Client) -> Optional[Garanzia]:
+    async def get_garanzia_by_title(self, title: str, company_id: str, supabase: Client) -> Optional[Garanzia]:
         """Get garanzia by title"""
         try:
-            result = supabase.table(Tables.GARANZIE).select("*").eq("titolo", title).execute()
+            result = supabase.table(Tables.GARANZIE).select("*").eq("titolo", title).eq("company_id", company_id).execute()
             
             if not result.data:
                 return None
@@ -131,10 +131,11 @@ class GaranzieService:
             logger.error(f"Error getting garanzia by title '{title}': {e}")
             raise DatabaseError(f"Errore nel recupero della garanzia: {str(e)}")
     
-    async def create_garanzia(self, garanzia_data: GaranziaCreate, supabase: Client) -> Garanzia:
+    async def create_garanzia(self, garanzia_data: GaranziaCreate, company_id: str, supabase: Client) -> Garanzia:
         """Create new garanzia"""
         try:
             data = garanzia_data.model_dump()
+            data["company_id"] = company_id  # Add multi-tenancy
             data["created_at"] = datetime.utcnow().isoformat()
             data["updated_at"] = datetime.utcnow().isoformat()
             
