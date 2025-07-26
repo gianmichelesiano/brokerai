@@ -8,7 +8,7 @@ import tempfile
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 from jinja2 import Template
-from pyppeteer import launch
+from playwright.async_api import async_playwright
 import logging
 
 logger = logging.getLogger(__name__)
@@ -419,47 +419,45 @@ class PDFGeneratorService:
     
     async def _generate_pdf_from_html(self, html_content: str) -> bytes:
         """
-        Genera PDF da contenuto HTML usando Puppeteer
+        Genera PDF da contenuto HTML usando Playwright
         """
-        browser = None
-        try:
-            # Lancia browser headless
-            browser = await launch(
-                headless=True,
-                args=[
-                    '--no-sandbox',
-                    '--disable-setuid-sandbox',
-                    '--disable-dev-shm-usage',
-                    '--disable-gpu'
-                ]
-            )
-            
-            page = await browser.newPage()
-            
-            # Carica il contenuto HTML
-            await page.setContent(html_content)
-            
-            # Genera PDF
-            pdf_bytes = await page.pdf(
-                format='A4',
-                margin={
-                    'top': '15mm',
-                    'right': '15mm',
-                    'bottom': '20mm',
-                    'left': '15mm'
-                },
-                printBackground=True,
-                displayHeaderFooter=False
-            )
-            
-            return pdf_bytes
-            
-        except Exception as e:
-            logger.error(f"Errore nella generazione PDF con Puppeteer: {e}")
-            raise
-        finally:
-            if browser:
+        async with async_playwright() as p:
+            try:
+                # Lancia browser headless
+                browser = await p.chromium.launch(
+                    headless=True,
+                    args=[
+                        '--no-sandbox',
+                        '--disable-setuid-sandbox',
+                        '--disable-dev-shm-usage',
+                        '--disable-gpu'
+                    ]
+                )
+                
+                page = await browser.new_page()
+                
+                # Carica il contenuto HTML
+                await page.set_content(html_content)
+                
+                # Genera PDF
+                pdf_bytes = await page.pdf(
+                    format='A4',
+                    margin={
+                        'top': '15mm',
+                        'right': '15mm', 
+                        'bottom': '20mm',
+                        'left': '15mm'
+                    },
+                    print_background=True,
+                    display_header_footer=False
+                )
+                
                 await browser.close()
+                return pdf_bytes
+                
+            except Exception as e:
+                logger.error(f"Errore nella generazione PDF con Playwright: {e}")
+                raise
 
 # Istanza globale del servizio
 pdf_service = PDFGeneratorService()
